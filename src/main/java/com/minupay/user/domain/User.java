@@ -21,7 +21,7 @@ public class User {
     }
 
     public static User create(String email, String name, String encodedPassword) {
-        return new User(null, email, name, encodedPassword, UserRole.USER, Instant.now());
+        return new User(null, email, name, encodedPassword, UserRole.USER, null);
     }
 
     public static User of(Long id, String email, String name, String encodedPassword, UserRole role, Instant createdAt) {

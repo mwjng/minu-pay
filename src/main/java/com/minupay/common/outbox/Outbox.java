@@ -1,5 +1,6 @@
 package com.minupay.common.outbox;
 
+import com.minupay.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,7 +15,7 @@ import java.time.Instant;
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Outbox {
+public class Outbox extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,9 +44,6 @@ public class Outbox {
 
     private int retryCount;
 
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt;
-
     private Instant publishedAt;
 
     public static Outbox create(
@@ -65,7 +63,6 @@ public class Outbox {
         outbox.payload = payload;
         outbox.status = OutboxStatus.PENDING;
         outbox.retryCount = 0;
-        outbox.createdAt = Instant.now();
         return outbox;
     }
 
