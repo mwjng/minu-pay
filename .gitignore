@@ -40,6 +40,3 @@ out/
 ### Env ###
 .env
 *.env.local
-
-### Claude Code ###
-.claude/
