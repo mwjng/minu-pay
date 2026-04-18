@@ -5,7 +5,7 @@ import com.minupay.auth.application.dto.TokenInfo;
 import com.minupay.auth.infrastructure.JwtProvider;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
-import com.minupay.user.domain.UserRepository;
+import com.minupay.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.minupay.user.domain;
+package com.minupay.user;
 
 import java.time.Instant;
 

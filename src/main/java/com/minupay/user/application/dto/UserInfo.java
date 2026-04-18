@@ -1,7 +1,7 @@
 package com.minupay.user.application.dto;
 
-import com.minupay.user.domain.User;
-import com.minupay.user.domain.UserRole;
+import com.minupay.user.User;
+import com.minupay.user.UserRole;
 
 public record UserInfo(Long id, String email, String name, UserRole role) {
 

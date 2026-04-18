@@ -1,8 +1,8 @@
 package com.minupay.user.infrastructure;
 
 import com.minupay.common.entity.BaseTimeEntity;
-import com.minupay.user.domain.User;
-import com.minupay.user.domain.UserRole;
+import com.minupay.user.User;
+import com.minupay.user.UserRole;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

@@ -1,7 +1,7 @@
 package com.minupay.user.infrastructure;
 
-import com.minupay.user.domain.User;
-import com.minupay.user.domain.UserRepository;
+import com.minupay.user.User;
+import com.minupay.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
