@@ -1,7 +1,6 @@
-package com.minupay.global.exception;
+package com.minupay.common.exception;
 
-import com.minupay.common.exception.DomainException;
-import com.minupay.global.response.ApiResponse;
+import com.minupay.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -10,8 +9,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(DomainException.class)
-    public ResponseEntity<ApiResponse<Void>> handleDomainException(DomainException e) {
+    @ExceptionHandler(MinuPayException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMinuPayException(MinuPayException e) {
         return ResponseEntity
                 .status(e.getErrorCode().getHttpStatus())
                 .body(ApiResponse.fail(e.getErrorCode().getCode(), e.getMessage()));

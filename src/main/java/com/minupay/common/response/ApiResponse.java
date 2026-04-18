@@ -1,4 +1,4 @@
-package com.minupay.global.response;
+package com.minupay.common.response;
 
 public record ApiResponse<T>(boolean success, String code, String message, T data) {
 

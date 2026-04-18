@@ -1,15 +1,15 @@
 package com.minupay.common.exception;
 
-public class DomainException extends RuntimeException {
+public class MinuPayException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
-    public DomainException(ErrorCode errorCode) {
+    public MinuPayException(ErrorCode errorCode) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
     }
 
-    public DomainException(ErrorCode errorCode, String detail) {
+    public MinuPayException(ErrorCode errorCode, String detail) {
         super(detail);
         this.errorCode = errorCode;
     }
