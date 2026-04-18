@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.minupay.wallet.application.dto.WalletDeductResult;
 import java.util.Map;
 
 @Service
@@ -72,6 +73,19 @@ public class WalletService {
         publishEvents(wallet);
 
         return WalletInfo.from(wallet);
+    }
+
+    @Transactional
+    public WalletDeductResult deductForPayment(ChargeCommand command) {
+        Wallet wallet = walletRepository.findByUserIdWithLock(command.userId())
+                .orElseThrow(() -> new MinuPayException(ErrorCode.WALLET_NOT_FOUND));
+
+        WalletTransaction tx = wallet.deduct(command.amount(), command.referenceId(), command.referenceType());
+        walletRepository.save(wallet);
+        WalletTransaction saved = walletTransactionRepository.save(tx);
+        publishEvents(wallet);
+
+        return new WalletDeductResult(wallet.getId(), wallet.getBalance().toLong(), saved.getId());
     }
 
     @Transactional
