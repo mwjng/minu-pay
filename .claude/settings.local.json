@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(gh auth *)",
+      "Bash(curl -s -o starter.zip \"https://start.spring.io/starter.zip?type=gradle-project&language=java&bootVersion=3.4.4&groupId=com.minupay&artifactId=minu-pay&name=minu-pay&description=Minu+Pay+Payment+Service&packageName=com.minupay&packaging=jar&javaVersion=21&dependencies=web,data-jpa,security,validation,lombok,h2,mysql\")",
+      "Bash(unzip -q starter.zip)",
+      "Bash(rm starter.zip)",
+      "Bash(curl -v -o starter.zip \"https://start.spring.io/starter.zip?type=gradle-project&language=java&bootVersion=3.4.4&groupId=com.minupay&artifactId=minu-pay&name=minu-pay&description=Minu+Pay+Payment+Service&packageName=com.minupay&packaging=jar&javaVersion=21&dependencies=web,data-jpa,security,validation,lombok,h2,mysql\")",
+      "Bash(curl -s -o starter.zip \"https://start.spring.io/starter.zip?type=gradle-project&language=java&bootVersion=3.5.0&groupId=com.minupay&artifactId=minu-pay&name=minu-pay&description=Minu+Pay+Payment+Service&packageName=com.minupay&packaging=jar&javaVersion=21&dependencies=web,data-jpa,security,validation,lombok,h2,mysql\")",
+      "Bash(unzip -q starter.zip -d /Users/mwjng/Documents/GitHub/minu-pay)"
+    ]
+  }
+}
