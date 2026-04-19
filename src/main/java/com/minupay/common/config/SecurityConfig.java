@@ -2,6 +2,7 @@ package com.minupay.common.config;
 
 import com.minupay.auth.infrastructure.JwtAuthenticationFilter;
 import com.minupay.auth.infrastructure.JwtProvider;
+import com.minupay.common.trace.TraceIdFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +36,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+            .addFilterBefore(new TraceIdFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

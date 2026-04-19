@@ -1,9 +1,13 @@
 package com.minupay.common.event;
 
+import org.slf4j.MDC;
+
 import java.time.Instant;
 import java.util.UUID;
 
 public abstract class AbstractDomainEvent implements DomainEvent {
+
+    private static final String MDC_TRACE_KEY = "traceId";
 
     private final String eventId;
     private final String traceId;
@@ -11,7 +15,7 @@ public abstract class AbstractDomainEvent implements DomainEvent {
 
     protected AbstractDomainEvent(String traceId) {
         this.eventId = UUID.randomUUID().toString();
-        this.traceId = traceId;
+        this.traceId = traceId != null ? traceId : MDC.get(MDC_TRACE_KEY);
         this.occurredAt = Instant.now();
     }
 
