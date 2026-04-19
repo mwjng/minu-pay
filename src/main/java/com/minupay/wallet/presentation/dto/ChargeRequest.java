@@ -9,9 +9,10 @@ import jakarta.validation.constraints.NotNull;
 public record ChargeRequest(
         @NotNull @Min(1) Long amount,
         @NotBlank String referenceId,
-        @NotBlank String referenceType
+        @NotBlank String referenceType,
+        @NotBlank String idempotencyKey
 ) {
     public ChargeCommand toCommand(Long userId) {
-        return new ChargeCommand(userId, Money.of(amount), referenceId, referenceType);
+        return new ChargeCommand(userId, Money.of(amount), referenceId, referenceType, idempotencyKey);
     }
 }

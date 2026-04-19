@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,8 +39,9 @@ class WalletConcurrencyTest {
                 existing -> {},
                 () -> walletService.createWallet(USER_ID)
         );
-        // 초기 잔액 10,000원 충전
-        walletService.charge(new ChargeCommand(USER_ID, Money.of(10_000L), "init", "INIT"));
+        // 초기 잔액 10,000원 충전 (매 테스트마다 새 idempotencyKey)
+        walletService.charge(new ChargeCommand(
+                USER_ID, Money.of(10_000L), "init", "INIT", "init-" + UUID.randomUUID()));
     }
 
     @Test
@@ -53,7 +55,9 @@ class WalletConcurrencyTest {
             int idx = i;
             executor.submit(() -> {
                 try {
-                    walletService.charge(new ChargeCommand(USER_ID, Money.of(1_000L), "ref-" + idx, "CHARGE_REQUEST"));
+                    walletService.charge(new ChargeCommand(
+                            USER_ID, Money.of(1_000L), "ref-" + idx, "CHARGE_REQUEST",
+                            "charge-" + UUID.randomUUID()));
                 } finally {
                     latch.countDown();
                 }
@@ -78,7 +82,7 @@ class WalletConcurrencyTest {
             int idx = i;
             executor.submit(() -> {
                 try {
-                    walletService.deduct(new ChargeCommand(USER_ID, Money.of(1_000L), "payment-" + idx, "PAYMENT"));
+                    walletService.deduct(new ChargeCommand(USER_ID, Money.of(1_000L), "payment-" + idx, "PAYMENT", null));
                 } catch (MinuPayException e) {
                     failCount.incrementAndGet();
                 } finally {
@@ -107,7 +111,7 @@ class WalletConcurrencyTest {
             int idx = i;
             executor.submit(() -> {
                 try {
-                    walletService.deduct(new ChargeCommand(USER_ID, Money.of(1_000L), "payment-" + idx, "PAYMENT"));
+                    walletService.deduct(new ChargeCommand(USER_ID, Money.of(1_000L), "payment-" + idx, "PAYMENT", null));
                     successCount.incrementAndGet();
                 } catch (MinuPayException e) {
                     failCount.incrementAndGet();

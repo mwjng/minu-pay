@@ -41,7 +41,7 @@ public class PaymentService {
         paymentRepository.save(payment);
 
         WalletDeductResult deductResult = walletService.deductForPayment(
-                new ChargeCommand(command.userId(), Money.of(command.amount()), payment.getId(), "PAYMENT")
+                new ChargeCommand(command.userId(), Money.of(command.amount()), payment.getId(), "PAYMENT", null)
         );
 
         return new PaymentInitResult(payment.getId(), deductResult.transactionId());
@@ -68,7 +68,7 @@ public class PaymentService {
         payment.fail(reason);
         paymentRepository.save(payment);
 
-        walletService.refund(new ChargeCommand(userId, Money.of(amount), paymentId, "PAYMENT_FAIL_REFUND"));
+        walletService.refund(new ChargeCommand(userId, Money.of(amount), paymentId, "PAYMENT_FAIL_REFUND", null));
         publishEvents(payment);
         return PaymentInfo.from(payment);
     }
@@ -82,7 +82,7 @@ public class PaymentService {
         payment.cancel(cancelPgPayment);
         paymentRepository.save(payment);
 
-        walletService.refund(new ChargeCommand(userId, amount, paymentId, "PAYMENT_CANCEL_REFUND"));
+        walletService.refund(new ChargeCommand(userId, amount, paymentId, "PAYMENT_CANCEL_REFUND", null));
         publishEvents(payment);
         return PaymentInfo.from(payment);
     }

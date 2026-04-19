@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minupay.common.event.EventEnvelope;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
+import com.minupay.common.idempotency.IdempotencyService;
 import com.minupay.common.outbox.Outbox;
 import com.minupay.common.outbox.OutboxRepository;
 import com.minupay.wallet.application.dto.ChargeCommand;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.minupay.wallet.application.dto.WalletDeductResult;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +36,7 @@ public class WalletService {
     private final WalletTransactionRepository walletTransactionRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final IdempotencyService idempotencyService;
 
     @Transactional
     public WalletInfo createWallet(Long userId) {
@@ -52,6 +55,15 @@ public class WalletService {
 
     @Transactional
     public WalletInfo charge(ChargeCommand command) {
+        if (command.idempotencyKey() == null) {
+            throw new MinuPayException(ErrorCode.INVALID_INPUT, "idempotencyKey is required for charge");
+        }
+
+        Optional<WalletInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), WalletInfo.class);
+        if (cached.isPresent()) return cached.get();
+
+        idempotencyService.markProcessing(command.idempotencyKey());
+
         Wallet wallet = walletRepository.findByUserIdWithLock(command.userId())
                 .orElseThrow(() -> new MinuPayException(ErrorCode.WALLET_NOT_FOUND));
 
@@ -60,7 +72,9 @@ public class WalletService {
         walletTransactionRepository.save(tx);
         publishEvents(wallet);
 
-        return WalletInfo.from(wallet);
+        WalletInfo result = WalletInfo.from(wallet);
+        idempotencyService.complete(command.idempotencyKey(), result);
+        return result;
     }
 
     @Transactional
