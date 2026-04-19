@@ -65,10 +65,7 @@ public class PaymentEntity extends BaseTimeEntity {
         return entity;
     }
 
-    public Payment toDomain(PgPaymentJpaRepository pgPaymentRepo) {
-        var pgPayment = pgPaymentRepo.findTopByPaymentIdOrderByCreatedAtDesc(id)
-                .map(PgPaymentEntity::toDomain)
-                .orElse(null);
+    public Payment toDomain(com.minupay.payment.domain.PgPayment pgPayment) {
         return Payment.of(id, userId, merchantId, Money.of(amount), status,
                 idempotencyKey, walletTransactionId, pgPayment, failureReason, approvedAt, cancelledAt);
     }

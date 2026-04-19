@@ -20,16 +20,24 @@ public class PaymentRepositoryImpl implements PaymentRepository {
         if (payment.getPgPayment() != null) {
             pgPaymentJpaRepository.save(PgPaymentEntity.from(payment.getId(), payment.getPgPayment()));
         }
-        return saved.toDomain(pgPaymentJpaRepository);
+        com.minupay.payment.domain.PgPayment pgPayment = loadPgPayment(payment.getId());
+        return saved.toDomain(pgPayment);
     }
 
     @Override
     public Optional<Payment> findById(String id) {
-        return jpaRepository.findById(id).map(e -> e.toDomain(pgPaymentJpaRepository));
+        return jpaRepository.findById(id).map(e -> e.toDomain(loadPgPayment(id)));
     }
 
     @Override
     public Optional<Payment> findByIdempotencyKey(String idempotencyKey) {
-        return jpaRepository.findByIdempotencyKey(idempotencyKey).map(e -> e.toDomain(pgPaymentJpaRepository));
+        return jpaRepository.findByIdempotencyKey(idempotencyKey)
+                .map(e -> e.toDomain(loadPgPayment(e.getId())));
+    }
+
+    private com.minupay.payment.domain.PgPayment loadPgPayment(String paymentId) {
+        return pgPaymentJpaRepository.findTopByPaymentIdOrderByCreatedAtDesc(paymentId)
+                .map(PgPaymentEntity::toDomain)
+                .orElse(null);
     }
 }
