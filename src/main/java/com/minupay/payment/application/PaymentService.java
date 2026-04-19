@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minupay.common.event.EventEnvelope;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
+import com.minupay.common.idempotency.IdempotencyService;
 import com.minupay.common.money.Money;
 import com.minupay.common.outbox.Outbox;
 import com.minupay.common.outbox.OutboxRepository;
@@ -14,8 +15,6 @@ import com.minupay.payment.domain.Payment;
 import com.minupay.payment.domain.PgPayment;
 import com.minupay.payment.domain.PgProvider;
 import com.minupay.payment.domain.PaymentRepository;
-import com.minupay.payment.infrastructure.idempotency.IdempotencyKeyEntity;
-import com.minupay.payment.infrastructure.idempotency.IdempotencyKeyJpaRepository;
 import com.minupay.payment.infrastructure.pg.PgResult;
 import com.minupay.wallet.application.WalletService;
 import com.minupay.wallet.application.dto.ChargeCommand;
@@ -30,13 +29,13 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final WalletService walletService;
-    private final IdempotencyKeyJpaRepository idempotencyKeyRepository;
+    private final IdempotencyService idempotencyService;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
 
     @Transactional
     public PaymentInitResult initiate(PaymentCommand command) {
-        idempotencyKeyRepository.save(IdempotencyKeyEntity.processing(command.idempotencyKey()));
+        idempotencyService.markProcessing(command.idempotencyKey());
 
         Payment payment = Payment.create(command.userId(), command.merchantId(), Money.of(command.amount()), command.idempotencyKey());
         paymentRepository.save(payment);

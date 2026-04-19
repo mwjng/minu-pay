@@ -1,17 +1,14 @@
 package com.minupay.payment.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
+import com.minupay.common.idempotency.IdempotencyService;
 import com.minupay.payment.application.dto.PaymentCommand;
 import com.minupay.payment.application.dto.PaymentInfo;
 import com.minupay.payment.domain.Payment;
 import com.minupay.payment.domain.PaymentRepository;
 import com.minupay.payment.domain.PaymentStatus;
 import com.minupay.payment.domain.PgProvider;
-import com.minupay.payment.infrastructure.idempotency.IdempotencyKeyEntity;
-import com.minupay.payment.infrastructure.idempotency.IdempotencyKeyJpaRepository;
 import com.minupay.payment.infrastructure.pg.PgApproveRequest;
 import com.minupay.payment.infrastructure.pg.PgClient;
 import com.minupay.payment.infrastructure.pg.PgResult;
@@ -32,18 +29,11 @@ public class PaymentFacade {
     private final PaymentRepository paymentRepository;
     private final PgClient pgClient;
     private final PgPaymentLogService pgPaymentLogService;
-    private final IdempotencyKeyJpaRepository idempotencyKeyRepository;
-    private final ObjectMapper objectMapper;
+    private final IdempotencyService idempotencyService;
 
     public PaymentInfo request(PaymentCommand command) {
-        Optional<IdempotencyKeyEntity> existing = idempotencyKeyRepository.findByKeyValue(command.idempotencyKey());
-        if (existing.isPresent() && existing.get().getResponseBody() != null) {
-            try {
-                return objectMapper.readValue(existing.get().getResponseBody(), PaymentInfo.class);
-            } catch (JsonProcessingException e) {
-                throw new MinuPayException(ErrorCode.INTERNAL_ERROR);
-            }
-        }
+        Optional<PaymentInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), PaymentInfo.class);
+        if (cached.isPresent()) return cached.get();
 
         PaymentService.PaymentInitResult init = paymentService.initiate(command);
 
@@ -69,7 +59,7 @@ public class PaymentFacade {
             result = paymentService.fail(init.paymentId(), init.walletTransactionId(), command.userId(), command.amount(), reason);
         }
 
-        completeIdempotencyKey(command.idempotencyKey(), result);
+        idempotencyService.complete(command.idempotencyKey(), result);
         return result;
     }
 
@@ -102,16 +92,5 @@ public class PaymentFacade {
         }
 
         return paymentService.confirmCancel(paymentId, payment.getUserId(), payment.getAmount(), pgResult);
-    }
-
-    private void completeIdempotencyKey(String keyValue, PaymentInfo result) {
-        idempotencyKeyRepository.findByKeyValue(keyValue).ifPresent(key -> {
-            try {
-                key.complete(objectMapper.writeValueAsString(result));
-                idempotencyKeyRepository.save(key);
-            } catch (JsonProcessingException e) {
-                log.error("Failed to serialize idempotency response for key={}", keyValue, e);
-            }
-        });
     }
 }

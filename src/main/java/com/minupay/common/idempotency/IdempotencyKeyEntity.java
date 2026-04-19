@@ -1,4 +1,4 @@
-package com.minupay.payment.infrastructure.idempotency;
+package com.minupay.common.idempotency;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
