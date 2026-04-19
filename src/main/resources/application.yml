@@ -3,6 +3,9 @@ spring:
     name: minu-pay
   profiles:
     active: local
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
 
 jwt:
   secret: ${JWT_SECRET:minupay-dev-secret-key-must-be-at-least-32-characters}
@@ -11,6 +14,14 @@ jwt:
 toss:
   base-url: https://api.tosspayments.com/v1
   secret-key: ${TOSS_SECRET_KEY:test_sk_placeholder}
+
+outbox:
+  publisher:
+    delay-ms: 1000
+
+audit:
+  consumer:
+    group-id: audit-consumer-group
 
 ---
 spring:
@@ -29,6 +40,8 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/minupay}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -47,6 +60,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
   jpa:
     hibernate:
       ddl-auto: validate

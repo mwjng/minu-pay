@@ -2,6 +2,7 @@ package com.minupay.payment.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minupay.common.event.EventEnvelope;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
 import com.minupay.common.money.Money;
@@ -90,7 +91,7 @@ public class PaymentService {
     private void publishEvents(Payment payment) {
         payment.getDomainEvents().forEach(event -> {
             try {
-                String payload = objectMapper.writeValueAsString(event.getPayload());
+                String payload = EventEnvelope.from(event).toJson(objectMapper);
                 String topic = switch (event.getEventType()) {
                     case "PaymentApproved" -> "payment.approved";
                     case "PaymentFailed" -> "payment.failed";

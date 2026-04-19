@@ -2,6 +2,7 @@ package com.minupay.wallet.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minupay.common.event.EventEnvelope;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
 import com.minupay.common.outbox.Outbox;
@@ -104,7 +105,7 @@ public class WalletService {
     private void publishEvents(Wallet wallet) {
         wallet.getDomainEvents().forEach(event -> {
             try {
-                String payload = objectMapper.writeValueAsString(event.getPayload());
+                String payload = EventEnvelope.from(event).toJson(objectMapper);
                 String topic = EVENT_TOPICS.getOrDefault(event.getEventType(), "wallet.events");
                 outboxRepository.save(Outbox.create(
                         event.getAggregateId(),
