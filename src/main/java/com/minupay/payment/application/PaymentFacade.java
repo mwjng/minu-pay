@@ -9,14 +9,11 @@ import com.minupay.payment.domain.Payment;
 import com.minupay.payment.domain.PaymentRepository;
 import com.minupay.payment.domain.PaymentStatus;
 import com.minupay.payment.domain.PgProvider;
+import com.minupay.payment.infrastructure.metrics.PaymentMetrics;
 import com.minupay.payment.infrastructure.pg.PgApproveRequest;
 import com.minupay.payment.infrastructure.pg.PgClient;
 import com.minupay.payment.infrastructure.pg.PgResult;
 import com.minupay.payment.infrastructure.pglog.PgPaymentLogService;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -35,31 +32,7 @@ public class PaymentFacade {
     private final PgClient pgClient;
     private final PgPaymentLogService pgPaymentLogService;
     private final IdempotencyService idempotencyService;
-    private final MeterRegistry meterRegistry;
-
-    private Counter approvedCounter;
-    private Counter failedCounter;
-    private Counter cancelledCounter;
-    private Timer pgApproveTimer;
-
-    @PostConstruct
-    void initMetrics() {
-        this.approvedCounter = Counter.builder("minupay.payment.requests")
-                .description("Payment request outcomes")
-                .tag("status", "APPROVED")
-                .register(meterRegistry);
-        this.failedCounter = Counter.builder("minupay.payment.requests")
-                .description("Payment request outcomes")
-                .tag("status", "FAILED")
-                .register(meterRegistry);
-        this.cancelledCounter = Counter.builder("minupay.payment.requests")
-                .description("Payment request outcomes")
-                .tag("status", "CANCELLED")
-                .register(meterRegistry);
-        this.pgApproveTimer = Timer.builder("minupay.pg.approve")
-                .description("PG approve call duration")
-                .register(meterRegistry);
-    }
+    private final PaymentMetrics paymentMetrics;
 
     public PaymentInfo request(PaymentCommand command) {
         Optional<PaymentInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), PaymentInfo.class);
@@ -74,7 +47,7 @@ public class PaymentFacade {
         } finally {
             long durationNs = System.nanoTime() - startTime;
             long durationMs = TimeUnit.NANOSECONDS.toMillis(durationNs);
-            pgApproveTimer.record(durationNs, TimeUnit.NANOSECONDS);
+            paymentMetrics.recordPgApproveDuration(durationNs);
             pgPaymentLogService.save(
                     init.paymentId(), PgProvider.TOSS.name(), "APPROVE",
                     Map.of("paymentKey", command.tossPaymentKey(), "amount", command.amount()),
@@ -86,11 +59,11 @@ public class PaymentFacade {
         PaymentInfo result;
         if (pgResult != null && pgResult.success()) {
             result = paymentService.approve(init.paymentId(), init.walletTransactionId(), pgResult);
-            approvedCounter.increment();
+            paymentMetrics.recordApproved();
         } else {
             String reason = pgResult != null ? pgResult.errorMessage() : "PG response timeout";
             result = paymentService.fail(init.paymentId(), init.walletTransactionId(), command.userId(), command.amount(), reason);
-            failedCounter.increment();
+            paymentMetrics.recordFailed();
         }
 
         idempotencyService.complete(command.idempotencyKey(), result);
@@ -126,7 +99,7 @@ public class PaymentFacade {
         }
 
         PaymentInfo cancelled = paymentService.confirmCancel(paymentId, payment.getUserId(), payment.getAmount(), pgResult);
-        cancelledCounter.increment();
+        paymentMetrics.recordCancelled();
         return cancelled;
     }
 }
