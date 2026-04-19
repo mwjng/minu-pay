@@ -19,6 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.minupay.wallet.application.dto.WalletDeductResult;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,6 +42,21 @@ public class WalletService {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
     private final IdempotencyService idempotencyService;
+    private final MeterRegistry meterRegistry;
+
+    private Counter chargeCounter;
+    private DistributionSummary chargeAmount;
+
+    @PostConstruct
+    void initMetrics() {
+        this.chargeCounter = Counter.builder("minupay.wallet.charges")
+                .description("Wallet charge invocations")
+                .register(meterRegistry);
+        this.chargeAmount = DistributionSummary.builder("minupay.wallet.charge.amount")
+                .description("Wallet charge amount (krw)")
+                .baseUnit("krw")
+                .register(meterRegistry);
+    }
 
     @Transactional
     public WalletInfo createWallet(Long userId) {
@@ -74,6 +94,8 @@ public class WalletService {
 
         WalletInfo result = WalletInfo.from(wallet);
         idempotencyService.complete(command.idempotencyKey(), result);
+        chargeCounter.increment();
+        chargeAmount.record(command.amount().toLong());
         return result;
     }
 

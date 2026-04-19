@@ -13,12 +13,17 @@ import com.minupay.payment.infrastructure.pg.PgApproveRequest;
 import com.minupay.payment.infrastructure.pg.PgClient;
 import com.minupay.payment.infrastructure.pg.PgResult;
 import com.minupay.payment.infrastructure.pglog.PgPaymentLogService;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -30,6 +35,31 @@ public class PaymentFacade {
     private final PgClient pgClient;
     private final PgPaymentLogService pgPaymentLogService;
     private final IdempotencyService idempotencyService;
+    private final MeterRegistry meterRegistry;
+
+    private Counter approvedCounter;
+    private Counter failedCounter;
+    private Counter cancelledCounter;
+    private Timer pgApproveTimer;
+
+    @PostConstruct
+    void initMetrics() {
+        this.approvedCounter = Counter.builder("minupay.payment.requests")
+                .description("Payment request outcomes")
+                .tag("status", "APPROVED")
+                .register(meterRegistry);
+        this.failedCounter = Counter.builder("minupay.payment.requests")
+                .description("Payment request outcomes")
+                .tag("status", "FAILED")
+                .register(meterRegistry);
+        this.cancelledCounter = Counter.builder("minupay.payment.requests")
+                .description("Payment request outcomes")
+                .tag("status", "CANCELLED")
+                .register(meterRegistry);
+        this.pgApproveTimer = Timer.builder("minupay.pg.approve")
+                .description("PG approve call duration")
+                .register(meterRegistry);
+    }
 
     public PaymentInfo request(PaymentCommand command) {
         Optional<PaymentInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), PaymentInfo.class);
@@ -37,26 +67,30 @@ public class PaymentFacade {
 
         PaymentService.PaymentInitResult init = paymentService.initiate(command);
 
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         PgResult pgResult = null;
         try {
             pgResult = pgClient.approve(new PgApproveRequest(command.tossPaymentKey(), init.paymentId(), command.amount()));
         } finally {
-            long duration = System.currentTimeMillis() - startTime;
+            long durationNs = System.nanoTime() - startTime;
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(durationNs);
+            pgApproveTimer.record(durationNs, TimeUnit.NANOSECONDS);
             pgPaymentLogService.save(
                     init.paymentId(), PgProvider.TOSS.name(), "APPROVE",
                     Map.of("paymentKey", command.tossPaymentKey(), "amount", command.amount()),
                     pgResult != null ? Map.of("success", pgResult.success()) : Map.of("error", "no_response"),
-                    duration
+                    durationMs
             );
         }
 
         PaymentInfo result;
         if (pgResult != null && pgResult.success()) {
             result = paymentService.approve(init.paymentId(), init.walletTransactionId(), pgResult);
+            approvedCounter.increment();
         } else {
             String reason = pgResult != null ? pgResult.errorMessage() : "PG response timeout";
             result = paymentService.fail(init.paymentId(), init.walletTransactionId(), command.userId(), command.amount(), reason);
+            failedCounter.increment();
         }
 
         idempotencyService.complete(command.idempotencyKey(), result);
@@ -91,6 +125,8 @@ public class PaymentFacade {
             throw new MinuPayException(ErrorCode.PG_APPROVAL_FAILED, "PG cancel failed");
         }
 
-        return paymentService.confirmCancel(paymentId, payment.getUserId(), payment.getAmount(), pgResult);
+        PaymentInfo cancelled = paymentService.confirmCancel(paymentId, payment.getUserId(), payment.getAmount(), pgResult);
+        cancelledCounter.increment();
+        return cancelled;
     }
 }
