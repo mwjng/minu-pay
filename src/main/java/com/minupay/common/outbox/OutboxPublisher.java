@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,9 @@ public class OutboxPublisher {
 
     private final OutboxRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+
+    @Value("${outbox.publisher.max-retries:5}")
+    private int maxRetries;
 
     @Scheduled(fixedDelayString = "${outbox.publisher.delay-ms:1000}")
     @Transactional
@@ -47,12 +51,16 @@ public class OutboxPublisher {
                 kafkaTemplate.send(record).get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 outbox.markPublished();
             } catch (InterruptedException e) {
+                // 스레드 종료 신호 — 이 루프를 중단하고 남은 항목은 다음 스케줄에서 재시도하도록 둔다.
                 Thread.currentThread().interrupt();
-                outbox.markFailed();
-                log.error("Outbox publish interrupted id={}", outbox.getId(), e);
+                outbox.recordFailure(maxRetries);
+                log.warn("Outbox publish interrupted id={}, stopping batch", outbox.getId());
+                outboxRepository.saveAll(pendings);
+                return;
             } catch (ExecutionException | TimeoutException e) {
-                outbox.markFailed();
-                log.error("Outbox publish failed id={} topic={}", outbox.getId(), outbox.getTopic(), e);
+                outbox.recordFailure(maxRetries);
+                log.error("Outbox publish failed id={} topic={} retryCount={}",
+                        outbox.getId(), outbox.getTopic(), outbox.getRetryCount(), e);
             }
         }
         outboxRepository.saveAll(pendings);

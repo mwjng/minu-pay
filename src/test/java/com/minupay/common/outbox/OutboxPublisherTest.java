@@ -3,6 +3,7 @@ package com.minupay.common.outbox;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,9 +14,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,6 +27,8 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class OutboxPublisherTest {
+
+    private static final int MAX_RETRIES = 5;
 
     @Mock
     private OutboxRepository outboxRepository;
@@ -38,8 +43,14 @@ class OutboxPublisherTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(publisher, "maxRetries", MAX_RETRIES);
         pending = Outbox.create("agg-1", "Payment", "PaymentApproved",
                 "payment.approved", "agg-1", "{\"eventId\":\"e-1\"}");
+    }
+
+    @AfterEach
+    void clearInterrupt() {
+        Thread.interrupted(); // 다른 테스트에 interrupt 플래그가 새지 않도록
     }
 
     @Test
@@ -47,12 +58,8 @@ class OutboxPublisherTest {
     void publish_success_marksPublished() {
         given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
                 .willReturn(List.of(pending));
-        SendResult<String, String> sendResult = new SendResult<>(
-                new ProducerRecord<>("payment.approved", "agg-1", "{}"),
-                new RecordMetadata(new TopicPartition("payment.approved", 0), 0, 0, 0, 0, 0)
-        );
         given(kafkaTemplate.send(any(ProducerRecord.class)))
-                .willReturn(CompletableFuture.completedFuture(sendResult));
+                .willReturn(CompletableFuture.completedFuture(successResult()));
 
         publisher.publish();
 
@@ -61,8 +68,8 @@ class OutboxPublisherTest {
     }
 
     @Test
-    @DisplayName("Kafka_전송_실패시_FAILED_상태로_변경되고_재시도_카운트가_증가한다")
-    void publish_failure_marksFailed() {
+    @DisplayName("Kafka_전송_실패시_재시도_카운트만_증가하고_PENDING_상태로_남는다")
+    void publish_failure_keepsPending() {
         given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
                 .willReturn(List.of(pending));
         CompletableFuture<SendResult<String, String>> failed = new CompletableFuture<>();
@@ -71,8 +78,44 @@ class OutboxPublisherTest {
 
         publisher.publish();
 
-        assertThat(pending.getStatus()).isEqualTo(OutboxStatus.FAILED);
+        assertThat(pending.getStatus()).isEqualTo(OutboxStatus.PENDING);
         assertThat(pending.getRetryCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("재시도_횟수가_임계값에_도달하면_FAILED로_전환된다")
+    void publish_retryExhausted_marksFailed() {
+        ReflectionTestUtils.setField(publisher, "maxRetries", 2);
+        given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
+                .willReturn(List.of(pending));
+        CompletableFuture<SendResult<String, String>> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("broker down"));
+        given(kafkaTemplate.send(any(ProducerRecord.class))).willReturn(failed);
+
+        publisher.publish(); // retry=1, PENDING
+        publisher.publish(); // retry=2, FAILED
+
+        assertThat(pending.getRetryCount()).isEqualTo(2);
+        assertThat(pending.getStatus()).isEqualTo(OutboxStatus.FAILED);
+    }
+
+    @Test
+    @DisplayName("인터럽트_발생시_현재_배치를_중단하고_남은_항목은_다음_스케줄로_넘긴다")
+    void publish_interrupted_breaksLoop() {
+        Outbox second = Outbox.create("agg-2", "Payment", "PaymentApproved",
+                "payment.approved", "agg-2", "{\"eventId\":\"e-2\"}");
+        given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
+                .willReturn(List.of(pending, second));
+        given(kafkaTemplate.send(any(ProducerRecord.class))).willReturn(new InterruptingFuture());
+
+        publisher.publish();
+
+        assertThat(pending.getRetryCount()).isEqualTo(1);
+        assertThat(pending.getStatus()).isEqualTo(OutboxStatus.PENDING);
+        // 두 번째 항목은 만져지지 않음 — 다음 스케줄에서 재시도
+        assertThat(second.getRetryCount()).isZero();
+        assertThat(second.getStatus()).isEqualTo(OutboxStatus.PENDING);
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
     }
 
     @Test
@@ -80,12 +123,8 @@ class OutboxPublisherTest {
     void publish_attachesEventMetadataHeaders() {
         given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
                 .willReturn(List.of(pending));
-        SendResult<String, String> sendResult = new SendResult<>(
-                new ProducerRecord<>("payment.approved", "agg-1", "{}"),
-                new RecordMetadata(new TopicPartition("payment.approved", 0), 0, 0, 0, 0, 0)
-        );
         given(kafkaTemplate.send(any(ProducerRecord.class)))
-                .willReturn(CompletableFuture.completedFuture(sendResult));
+                .willReturn(CompletableFuture.completedFuture(successResult()));
 
         publisher.publish();
 
@@ -97,5 +136,19 @@ class OutboxPublisherTest {
         assertThat(sent.headers().lastHeader("eventType").value()).asString().isEqualTo("PaymentApproved");
         assertThat(sent.headers().lastHeader("aggregateType").value()).asString().isEqualTo("Payment");
         assertThat(sent.headers().lastHeader("aggregateId").value()).asString().isEqualTo("agg-1");
+    }
+
+    private SendResult<String, String> successResult() {
+        return new SendResult<>(
+                new ProducerRecord<>("payment.approved", "agg-1", "{}"),
+                new RecordMetadata(new TopicPartition("payment.approved", 0), 0, 0, 0, 0, 0)
+        );
+    }
+
+    private static class InterruptingFuture extends CompletableFuture<SendResult<String, String>> {
+        @Override
+        public SendResult<String, String> get(long timeout, TimeUnit unit) throws InterruptedException {
+            throw new InterruptedException("simulated interrupt");
+        }
     }
 }

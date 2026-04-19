@@ -18,6 +18,7 @@ toss:
 outbox:
   publisher:
     delay-ms: 1000
+    max-retries: 5
 
 audit:
   consumer:

@@ -71,12 +71,14 @@ public class Outbox extends BaseTimeEntity {
         this.publishedAt = Instant.now();
     }
 
-    public void markFailed() {
+    /**
+     * Records a transient publish failure. Status stays PENDING so the next scheduled run retries it,
+     * unless retryCount has reached maxRetries — at that point it flips to FAILED and needs manual intervention.
+     */
+    public void recordFailure(int maxRetries) {
         this.retryCount++;
-        this.status = OutboxStatus.FAILED;
-    }
-
-    public void resetToPending() {
-        this.status = OutboxStatus.PENDING;
+        if (this.retryCount >= maxRetries) {
+            this.status = OutboxStatus.FAILED;
+        }
     }
 }
