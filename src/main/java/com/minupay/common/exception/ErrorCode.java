@@ -22,7 +22,10 @@ public enum ErrorCode {
     // Auth
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "A001", "Unauthorized"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "A002", "Forbidden"),
-    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A003", "Invalid or expired token");
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A003", "Invalid or expired token"),
+
+    // Audit
+    AUDIT_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "AU001", "Audit log not found");
 
     private final HttpStatus httpStatus;
     private final String code;
