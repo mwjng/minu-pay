@@ -46,7 +46,6 @@ public class IdempotencyService {
         repository.findByKeyValue(key).ifPresent(entity -> {
             try {
                 entity.complete(objectMapper.writeValueAsString(response));
-                repository.save(entity);
             } catch (JsonProcessingException e) {
                 log.error("Failed to serialize idempotency response key={}", key, e);
             }
