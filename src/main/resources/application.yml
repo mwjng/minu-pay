@@ -24,6 +24,11 @@ audit:
   consumer:
     group-id: audit-consumer-group
 
+settlement:
+  consumer:
+    group-id: settlement-consumer-group
+  fee-rate: 0.03
+
 ---
 spring:
   config:
