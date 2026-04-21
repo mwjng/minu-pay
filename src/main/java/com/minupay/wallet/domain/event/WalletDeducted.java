@@ -1,6 +1,7 @@
 package com.minupay.wallet.domain.event;
 
 import com.minupay.common.event.AbstractDomainEvent;
+import com.minupay.common.event.EventTopic;
 import com.minupay.common.money.Money;
 
 import java.util.Map;
@@ -23,7 +24,7 @@ public class WalletDeducted extends AbstractDomainEvent {
     @Override public String getEventType() { return "WalletDeducted"; }
     @Override public String getAggregateId() { return walletId.toString(); }
     @Override public String getAggregateType() { return "Wallet"; }
-    @Override public String getTopic() { return "wallet.deducted"; }
+    @Override public String getTopic() { return EventTopic.WALLET_DEDUCTED; }
 
     @Override
     public Object getPayload() {

@@ -3,6 +3,7 @@ package com.minupay.settlement.application;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.minupay.common.event.EventEnvelope;
+import com.minupay.common.event.EventTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,14 +41,14 @@ class SettlementConsumerTest {
                 Map.of("paymentId", "payment-1", "merchantId", "m-1", "amount", 1000)
         );
         ConsumerRecord<String, String> record = new ConsumerRecord<>(
-                "payment.approved", 0, 0L, "payment-1", objectMapper.writeValueAsString(envelope));
+                EventTopic.PAYMENT_APPROVED, 0, 0L, "payment-1", objectMapper.writeValueAsString(envelope));
         Acknowledgment ack = mock(Acknowledgment.class);
 
         consumer.consume(record, ack);
 
         ArgumentCaptor<EventEnvelope> envCaptor = ArgumentCaptor.forClass(EventEnvelope.class);
         ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(settlementService).handleApproved(envCaptor.capture(), eq("payment.approved"), payloadCaptor.capture());
+        verify(settlementService).handleApproved(envCaptor.capture(), eq(EventTopic.PAYMENT_APPROVED), payloadCaptor.capture());
         assertThat(envCaptor.getValue().eventId()).isEqualTo("evt-1");
         assertThat(payloadCaptor.getValue()).containsEntry("paymentId", "payment-1");
         verifyNoMoreInteractions(settlementService);
@@ -62,12 +63,12 @@ class SettlementConsumerTest {
                 Instant.now(), Map.of("paymentId", "payment-1")
         );
         ConsumerRecord<String, String> record = new ConsumerRecord<>(
-                "payment.cancelled", 0, 0L, "payment-1", objectMapper.writeValueAsString(envelope));
+                EventTopic.PAYMENT_CANCELLED, 0, 0L, "payment-1", objectMapper.writeValueAsString(envelope));
         Acknowledgment ack = mock(Acknowledgment.class);
 
         consumer.consume(record, ack);
 
-        verify(settlementService).handleCancelled(any(), eq("payment.cancelled"), any());
+        verify(settlementService).handleCancelled(any(), eq(EventTopic.PAYMENT_CANCELLED), any());
         verifyNoMoreInteractions(settlementService);
         verify(ack).acknowledge();
     }
@@ -80,7 +81,7 @@ class SettlementConsumerTest {
                 Instant.now(), Map.of("paymentId", "payment-1")
         );
         ConsumerRecord<String, String> record = new ConsumerRecord<>(
-                "payment.approved", 0, 0L, "payment-1", objectMapper.writeValueAsString(envelope));
+                EventTopic.PAYMENT_APPROVED, 0, 0L, "payment-1", objectMapper.writeValueAsString(envelope));
         Acknowledgment ack = mock(Acknowledgment.class);
 
         consumer.consume(record, ack);
@@ -93,7 +94,7 @@ class SettlementConsumerTest {
     @DisplayName("파싱_실패시_Service_호출없이_ack한다_poison_message")
     void consume_invalidJson_acksWithoutSaving() {
         ConsumerRecord<String, String> record = new ConsumerRecord<>(
-                "payment.approved", 0, 0L, "k", "{broken");
+                EventTopic.PAYMENT_APPROVED, 0, 0L, "k", "{broken");
         Acknowledgment ack = mock(Acknowledgment.class);
 
         consumer.consume(record, ack);

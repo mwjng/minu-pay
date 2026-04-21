@@ -2,6 +2,7 @@ package com.minupay.settlement.application;
 
 import com.minupay.common.consumer.ConsumedEventRecorder;
 import com.minupay.common.event.EventEnvelope;
+import com.minupay.common.event.EventTopic;
 import com.minupay.common.money.Money;
 import com.minupay.settlement.domain.SettlementItem;
 import com.minupay.settlement.domain.SettlementItemRepository;
@@ -33,8 +34,8 @@ import static org.mockito.Mockito.verify;
 class SettlementServiceTest {
 
     private static final String GROUP = "settlement-consumer-group";
-    private static final String TOPIC_APPROVED = "payment.approved";
-    private static final String TOPIC_CANCELLED = "payment.cancelled";
+    private static final String TOPIC_APPROVED = EventTopic.PAYMENT_APPROVED;
+    private static final String TOPIC_CANCELLED = EventTopic.PAYMENT_CANCELLED;
 
     @Mock
     private SettlementItemRepository settlementItemRepository;

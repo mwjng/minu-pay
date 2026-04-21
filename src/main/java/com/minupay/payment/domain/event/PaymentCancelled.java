@@ -1,6 +1,7 @@
 package com.minupay.payment.domain.event;
 
 import com.minupay.common.event.AbstractDomainEvent;
+import com.minupay.common.event.EventTopic;
 import com.minupay.common.money.Money;
 
 import java.util.Map;
@@ -23,7 +24,7 @@ public class PaymentCancelled extends AbstractDomainEvent {
     @Override public String getEventType() { return "PaymentCancelled"; }
     @Override public String getAggregateId() { return paymentId; }
     @Override public String getAggregateType() { return "Payment"; }
-    @Override public String getTopic() { return "payment.cancelled"; }
+    @Override public String getTopic() { return EventTopic.PAYMENT_CANCELLED; }
 
     @Override
     public Object getPayload() {

@@ -1,5 +1,6 @@
 package com.minupay.common.outbox;
 
+import com.minupay.common.event.EventTopic;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -45,7 +46,7 @@ class OutboxPublisherTest {
     void setUp() {
         ReflectionTestUtils.setField(publisher, "maxRetries", MAX_RETRIES);
         pending = Outbox.create("agg-1", "Payment", "PaymentApproved",
-                "payment.approved", "agg-1", "{\"eventId\":\"e-1\"}");
+                EventTopic.PAYMENT_APPROVED, "agg-1", "{\"eventId\":\"e-1\"}");
     }
 
     @AfterEach
@@ -103,7 +104,7 @@ class OutboxPublisherTest {
     @DisplayName("인터럽트_발생시_현재_배치를_중단하고_남은_항목은_다음_스케줄로_넘긴다")
     void publish_interrupted_breaksLoop() {
         Outbox second = Outbox.create("agg-2", "Payment", "PaymentApproved",
-                "payment.approved", "agg-2", "{\"eventId\":\"e-2\"}");
+                EventTopic.PAYMENT_APPROVED, "agg-2", "{\"eventId\":\"e-2\"}");
         given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
                 .willReturn(List.of(pending, second));
         given(kafkaTemplate.send(any(ProducerRecord.class))).willReturn(new InterruptingFuture());
@@ -130,7 +131,7 @@ class OutboxPublisherTest {
         ArgumentCaptor<ProducerRecord<String, String>> captor = ArgumentCaptor.forClass(ProducerRecord.class);
         verify(kafkaTemplate).send(captor.capture());
         ProducerRecord<String, String> sent = captor.getValue();
-        assertThat(sent.topic()).isEqualTo("payment.approved");
+        assertThat(sent.topic()).isEqualTo(EventTopic.PAYMENT_APPROVED);
         assertThat(sent.key()).isEqualTo("agg-1");
         assertThat(sent.headers().lastHeader("eventType").value()).asString().isEqualTo("PaymentApproved");
         assertThat(sent.headers().lastHeader("aggregateType").value()).asString().isEqualTo("Payment");
@@ -139,8 +140,8 @@ class OutboxPublisherTest {
 
     private SendResult<String, String> successResult() {
         return new SendResult<>(
-                new ProducerRecord<>("payment.approved", "agg-1", "{}"),
-                new RecordMetadata(new TopicPartition("payment.approved", 0), 0, 0, 0, 0, 0)
+                new ProducerRecord<>(EventTopic.PAYMENT_APPROVED, "agg-1", "{}"),
+                new RecordMetadata(new TopicPartition(EventTopic.PAYMENT_APPROVED, 0), 0, 0, 0, 0, 0)
         );
     }
 

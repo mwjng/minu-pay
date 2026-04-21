@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.minupay.audit.domain.AuditLog;
 import com.minupay.audit.domain.AuditLogRepository;
 import com.minupay.common.event.EventEnvelope;
+import com.minupay.common.event.EventTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +42,7 @@ class AuditConsumerTest {
                 Map.of("paymentId", "payment-1", "amount", 1000)
         );
         String json = objectMapper.writeValueAsString(envelope);
-        ConsumerRecord<String, String> record = new ConsumerRecord<>("payment.approved", 0, 0L, "payment-1", json);
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(EventTopic.PAYMENT_APPROVED, 0, 0L, "payment-1", json);
         Acknowledgment ack = mock(Acknowledgment.class);
         given(auditLogRepository.saveIfAbsent(any())).willReturn(true);
 
@@ -66,7 +67,7 @@ class AuditConsumerTest {
                 Instant.now(), Map.of("paymentId", "payment-1")
         );
         String json = objectMapper.writeValueAsString(envelope);
-        ConsumerRecord<String, String> record = new ConsumerRecord<>("payment.approved", 0, 0L, "payment-1", json);
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(EventTopic.PAYMENT_APPROVED, 0, 0L, "payment-1", json);
         Acknowledgment ack = mock(Acknowledgment.class);
         given(auditLogRepository.saveIfAbsent(any())).willReturn(false);
 
@@ -79,7 +80,7 @@ class AuditConsumerTest {
     @Test
     @DisplayName("파싱_실패시_Repository_호출없이_ack하여_소비자가_멈추지_않는다")
     void consume_invalidJson_acksWithoutSaving() {
-        ConsumerRecord<String, String> record = new ConsumerRecord<>("payment.approved", 0, 0L, "key", "{broken");
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(EventTopic.PAYMENT_APPROVED, 0, 0L, "key", "{broken");
         Acknowledgment ack = mock(Acknowledgment.class);
 
         consumer.consume(record, ack);

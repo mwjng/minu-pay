@@ -2,8 +2,8 @@ package com.minupay.settlement.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.minupay.common.config.KafkaConfig;
 import com.minupay.common.event.EventEnvelope;
+import com.minupay.common.event.EventTopic;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -22,7 +22,7 @@ public class SettlementConsumer {
     private final ObjectMapper objectMapper;
 
     @KafkaListener(
-            topics = {KafkaConfig.TOPIC_PAYMENT_APPROVED, KafkaConfig.TOPIC_PAYMENT_CANCELLED},
+            topics = {EventTopic.PAYMENT_APPROVED, EventTopic.PAYMENT_CANCELLED},
             groupId = "${settlement.consumer.group-id:settlement-consumer-group}"
     )
     public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) {

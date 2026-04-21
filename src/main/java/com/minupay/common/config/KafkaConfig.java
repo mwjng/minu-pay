@@ -1,5 +1,6 @@
 package com.minupay.common.config;
 
+import com.minupay.common.event.EventTopic;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -24,12 +25,8 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
 
-    public static final String TOPIC_WALLET_CHARGED = "wallet.charged";
-    public static final String TOPIC_WALLET_DEDUCTED = "wallet.deducted";
-    public static final String TOPIC_WALLET_REFUNDED = "wallet.refunded";
-    public static final String TOPIC_PAYMENT_APPROVED = "payment.approved";
-    public static final String TOPIC_PAYMENT_FAILED = "payment.failed";
-    public static final String TOPIC_PAYMENT_CANCELLED = "payment.cancelled";
+    private static final int TOPIC_PARTITIONS = 3;
+    private static final int TOPIC_REPLICAS = 1;
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -71,10 +68,40 @@ public class KafkaConfig {
         return factory;
     }
 
-    @Bean public NewTopic walletChargedTopic() { return TopicBuilder.name(TOPIC_WALLET_CHARGED).partitions(3).replicas(1).build(); }
-    @Bean public NewTopic walletDeductedTopic() { return TopicBuilder.name(TOPIC_WALLET_DEDUCTED).partitions(3).replicas(1).build(); }
-    @Bean public NewTopic walletRefundedTopic() { return TopicBuilder.name(TOPIC_WALLET_REFUNDED).partitions(3).replicas(1).build(); }
-    @Bean public NewTopic paymentApprovedTopic() { return TopicBuilder.name(TOPIC_PAYMENT_APPROVED).partitions(3).replicas(1).build(); }
-    @Bean public NewTopic paymentFailedTopic() { return TopicBuilder.name(TOPIC_PAYMENT_FAILED).partitions(3).replicas(1).build(); }
-    @Bean public NewTopic paymentCancelledTopic() { return TopicBuilder.name(TOPIC_PAYMENT_CANCELLED).partitions(3).replicas(1).build(); }
+    @Bean
+    public NewTopic walletChargedTopic() {
+        return newTopic(EventTopic.WALLET_CHARGED);
+    }
+
+    @Bean
+    public NewTopic walletDeductedTopic() {
+        return newTopic(EventTopic.WALLET_DEDUCTED);
+    }
+
+    @Bean
+    public NewTopic walletRefundedTopic() {
+        return newTopic(EventTopic.WALLET_REFUNDED);
+    }
+
+    @Bean
+    public NewTopic paymentApprovedTopic() {
+        return newTopic(EventTopic.PAYMENT_APPROVED);
+    }
+
+    @Bean
+    public NewTopic paymentFailedTopic() {
+        return newTopic(EventTopic.PAYMENT_FAILED);
+    }
+
+    @Bean
+    public NewTopic paymentCancelledTopic() {
+        return newTopic(EventTopic.PAYMENT_CANCELLED);
+    }
+
+    private NewTopic newTopic(String name) {
+        return TopicBuilder.name(name)
+                .partitions(TOPIC_PARTITIONS)
+                .replicas(TOPIC_REPLICAS)
+                .build();
+    }
 }
