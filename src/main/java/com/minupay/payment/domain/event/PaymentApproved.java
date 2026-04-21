@@ -2,6 +2,7 @@ package com.minupay.payment.domain.event;
 
 import com.minupay.common.event.AbstractDomainEvent;
 import com.minupay.common.event.EventTopic;
+import com.minupay.common.event.EventType;
 import com.minupay.common.money.Money;
 
 import java.util.Map;
@@ -23,7 +24,7 @@ public class PaymentApproved extends AbstractDomainEvent {
 
     @Override
     public String getEventType() {
-        return "PaymentApproved";
+        return EventType.PAYMENT_APPROVED;
     }
 
     @Override

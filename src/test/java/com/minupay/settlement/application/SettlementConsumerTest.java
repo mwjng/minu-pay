@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.minupay.common.event.EventEnvelope;
 import com.minupay.common.event.EventTopic;
+import com.minupay.common.event.EventType;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +37,7 @@ class SettlementConsumerTest {
     @DisplayName("PaymentApproved_envelope_수신시_handleApproved로_위임되고_ack된다")
     void consume_approved_routesToHandleApproved() throws Exception {
         EventEnvelope envelope = new EventEnvelope(
-                "evt-1", "PaymentApproved", "payment-1", "Payment", "trace-1",
+                "evt-1", EventType.PAYMENT_APPROVED, "payment-1", "Payment", "trace-1",
                 Instant.parse("2026-04-19T10:00:00Z"),
                 Map.of("paymentId", "payment-1", "merchantId", "m-1", "amount", 1000)
         );
@@ -59,7 +60,7 @@ class SettlementConsumerTest {
     @DisplayName("PaymentCancelled_envelope_수신시_handleCancelled로_위임되고_ack된다")
     void consume_cancelled_routesToHandleCancelled() throws Exception {
         EventEnvelope envelope = new EventEnvelope(
-                "evt-2", "PaymentCancelled", "payment-1", "Payment", null,
+                "evt-2", EventType.PAYMENT_CANCELLED, "payment-1", "Payment", null,
                 Instant.now(), Map.of("paymentId", "payment-1")
         );
         ConsumerRecord<String, String> record = new ConsumerRecord<>(

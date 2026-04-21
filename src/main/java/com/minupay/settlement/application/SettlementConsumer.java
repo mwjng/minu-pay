@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minupay.common.event.EventEnvelope;
 import com.minupay.common.event.EventTopic;
+import com.minupay.common.event.EventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -31,8 +32,8 @@ public class SettlementConsumer {
             Map<String, Object> payload = toMap(envelope.payload());
 
             switch (envelope.eventType()) {
-                case "PaymentApproved" -> settlementService.handleApproved(envelope, record.topic(), payload);
-                case "PaymentCancelled" -> settlementService.handleCancelled(envelope, record.topic(), payload);
+                case EventType.PAYMENT_APPROVED -> settlementService.handleApproved(envelope, record.topic(), payload);
+                case EventType.PAYMENT_CANCELLED -> settlementService.handleCancelled(envelope, record.topic(), payload);
                 default -> log.warn("Unhandled event type {} on {}", envelope.eventType(), record.topic());
             }
             ack.acknowledge();
