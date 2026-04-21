@@ -72,11 +72,9 @@ public class PaymentService {
     public CancelReservation reserveCancel(String paymentId, String idempotencyKey) {
         Payment payment = paymentRepository.findByIdWithLock(paymentId)
                 .orElseThrow(() -> new MinuPayException(ErrorCode.PAYMENT_NOT_FOUND));
-        if (payment.getStatus() != com.minupay.payment.domain.PaymentStatus.APPROVED) {
-            throw new MinuPayException(ErrorCode.INVALID_PAYMENT_STATUS, "Only APPROVED payment can be cancelled");
-        }
+        payment.ensureCancellable();
         idempotencyService.markProcessing(idempotencyKey);
-        return new CancelReservation(payment.getUserId(), payment.getAmount(), payment.getPgPayment().getPgTxId());
+        return new CancelReservation(payment.getUserId(), payment.getAmount(), payment.getPgTxId());
     }
 
     @Transactional

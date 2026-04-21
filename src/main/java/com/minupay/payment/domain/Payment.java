@@ -83,13 +83,24 @@ public class Payment {
     }
 
     public void cancel(PgPayment cancelPgPayment) {
-        if (status != PaymentStatus.APPROVED) {
-            throw new MinuPayException(ErrorCode.INVALID_PAYMENT_STATUS, "Only APPROVED payment can be cancelled");
-        }
+        ensureCancellable();
         this.pgPayment = cancelPgPayment;
         this.status = PaymentStatus.CANCELLED;
         this.cancelledAt = Instant.now();
         domainEvents.add(new PaymentCancelled(id, userId, merchantId, amount));
+    }
+
+    public void ensureCancellable() {
+        if (status != PaymentStatus.APPROVED) {
+            throw new MinuPayException(ErrorCode.INVALID_PAYMENT_STATUS, "Only APPROVED payment can be cancelled");
+        }
+    }
+
+    public String getPgTxId() {
+        if (pgPayment == null) {
+            throw new MinuPayException(ErrorCode.INVALID_PAYMENT_STATUS, "Payment has no PG transaction yet");
+        }
+        return pgPayment.getPgTxId();
     }
 
     public List<DomainEvent> getDomainEvents() {
