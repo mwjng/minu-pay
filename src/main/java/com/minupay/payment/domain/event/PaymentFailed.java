@@ -13,7 +13,7 @@ public class PaymentFailed extends AbstractDomainEvent {
     private final String reason;
 
     public PaymentFailed(String paymentId, Long userId, Money amount, String reason) {
-        super(null);
+        super();
         this.paymentId = paymentId;
         this.userId = userId;
         this.amount = amount;

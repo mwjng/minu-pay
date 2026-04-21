@@ -13,7 +13,7 @@ public class PaymentApproved extends AbstractDomainEvent {
     private final Money amount;
 
     public PaymentApproved(String paymentId, Long userId, String merchantId, Money amount) {
-        super(null);
+        super();
         this.paymentId = paymentId;
         this.userId = userId;
         this.merchantId = merchantId;

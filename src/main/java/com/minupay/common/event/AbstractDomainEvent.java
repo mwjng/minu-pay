@@ -13,9 +13,9 @@ public abstract class AbstractDomainEvent implements DomainEvent {
     private final String traceId;
     private final Instant occurredAt;
 
-    protected AbstractDomainEvent(String traceId) {
+    protected AbstractDomainEvent() {
         this.eventId = UUID.randomUUID().toString();
-        this.traceId = traceId != null ? traceId : MDC.get(MDC_TRACE_KEY);
+        this.traceId = MDC.get(MDC_TRACE_KEY);
         this.occurredAt = Instant.now();
     }
 

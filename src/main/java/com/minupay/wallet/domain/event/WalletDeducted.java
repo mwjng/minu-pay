@@ -13,7 +13,7 @@ public class WalletDeducted extends AbstractDomainEvent {
     private final String referenceId;
 
     public WalletDeducted(Long walletId, Long userId, Money amount, String referenceId) {
-        super(null);
+        super();
         this.walletId = walletId;
         this.userId = userId;
         this.amount = amount;

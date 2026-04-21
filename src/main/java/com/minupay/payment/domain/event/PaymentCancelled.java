@@ -13,7 +13,7 @@ public class PaymentCancelled extends AbstractDomainEvent {
     private final Money amount;
 
     public PaymentCancelled(String paymentId, Long userId, String merchantId, Money amount) {
-        super(null);
+        super();
         this.paymentId = paymentId;
         this.userId = userId;
         this.merchantId = merchantId;
