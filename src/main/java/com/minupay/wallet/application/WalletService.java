@@ -63,7 +63,9 @@ public class WalletService {
         }
 
         Optional<WalletInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), WalletInfo.class);
-        if (cached.isPresent()) return cached.get();
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         idempotencyService.markProcessing(command.idempotencyKey());
 

@@ -74,8 +74,19 @@ public class PaymentService {
     }
 
     @Transactional
+    public CancelReservation reserveCancel(String paymentId, String idempotencyKey) {
+        Payment payment = paymentRepository.findByIdWithLock(paymentId)
+                .orElseThrow(() -> new MinuPayException(ErrorCode.PAYMENT_NOT_FOUND));
+        if (payment.getStatus() != com.minupay.payment.domain.PaymentStatus.APPROVED) {
+            throw new MinuPayException(ErrorCode.INVALID_PAYMENT_STATUS, "Only APPROVED payment can be cancelled");
+        }
+        idempotencyService.markProcessing(idempotencyKey);
+        return new CancelReservation(payment.getUserId(), payment.getAmount(), payment.getPgPayment().getPgTxId());
+    }
+
+    @Transactional
     public PaymentInfo confirmCancel(String paymentId, Long userId, Money amount, PgResult pgResult) {
-        Payment payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findByIdWithLock(paymentId)
                 .orElseThrow(() -> new MinuPayException(ErrorCode.PAYMENT_NOT_FOUND));
 
         PgPayment cancelPgPayment = PgPayment.cancelled(PgProvider.TOSS, pgResult.pgTxId(), null);
@@ -109,4 +120,6 @@ public class PaymentService {
     }
 
     record PaymentInitResult(String paymentId, Long walletTransactionId) {}
+
+    public record CancelReservation(Long userId, Money amount, String pgTxId) {}
 }

@@ -5,9 +5,6 @@ import com.minupay.common.exception.MinuPayException;
 import com.minupay.common.idempotency.IdempotencyService;
 import com.minupay.payment.application.dto.PaymentCommand;
 import com.minupay.payment.application.dto.PaymentInfo;
-import com.minupay.payment.domain.Payment;
-import com.minupay.payment.domain.PaymentRepository;
-import com.minupay.payment.domain.PaymentStatus;
 import com.minupay.payment.domain.PgProvider;
 import com.minupay.payment.infrastructure.metrics.PaymentMetrics;
 import com.minupay.payment.infrastructure.pg.PgApproveRequest;
@@ -28,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 public class PaymentFacade {
 
     private final PaymentService paymentService;
-    private final PaymentRepository paymentRepository;
     private final PgClient pgClient;
     private final PgPaymentLogService pgPaymentLogService;
     private final IdempotencyService idempotencyService;
@@ -70,15 +66,12 @@ public class PaymentFacade {
         return result;
     }
 
-    public PaymentInfo cancel(String paymentId, String reason) {
-        Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new MinuPayException(ErrorCode.PAYMENT_NOT_FOUND));
+    public PaymentInfo cancel(String paymentId, String reason, String idempotencyKey) {
+        Optional<PaymentInfo> cached = idempotencyService.findCachedResponse(idempotencyKey, PaymentInfo.class);
+        if (cached.isPresent()) return cached.get();
 
-        if (payment.getStatus() != PaymentStatus.APPROVED) {
-            throw new MinuPayException(ErrorCode.INVALID_PAYMENT_STATUS, "Only APPROVED payment can be cancelled");
-        }
-
-        String pgTxId = payment.getPgPayment().getPgTxId();
+        PaymentService.CancelReservation reservation = paymentService.reserveCancel(paymentId, idempotencyKey);
+        String pgTxId = reservation.pgTxId();
 
         long startTime = System.currentTimeMillis();
         PgResult pgResult = null;
@@ -98,8 +91,9 @@ public class PaymentFacade {
             throw new MinuPayException(ErrorCode.PG_APPROVAL_FAILED, "PG cancel failed");
         }
 
-        PaymentInfo cancelled = paymentService.confirmCancel(paymentId, payment.getUserId(), payment.getAmount(), pgResult);
+        PaymentInfo cancelled = paymentService.confirmCancel(paymentId, reservation.userId(), reservation.amount(), pgResult);
         paymentMetrics.recordCancelled();
+        idempotencyService.complete(idempotencyKey, cancelled);
         return cancelled;
     }
 }

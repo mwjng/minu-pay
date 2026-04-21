@@ -14,8 +14,8 @@ import java.time.Instant;
 
 @Entity
 @Table(
-    name = "wallet_transactions",
-    indexes = @Index(name = "idx_wallet_created", columnList = "wallet_id, created_at")
+        name = "wallet_transactions",
+        indexes = @Index(name = "idx_wallet_created", columnList = "wallet_id, created_at")
 )
 @EntityListeners(AuditingEntityListener.class)
 @Getter

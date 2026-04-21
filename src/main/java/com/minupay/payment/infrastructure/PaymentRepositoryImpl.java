@@ -30,6 +30,11 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     }
 
     @Override
+    public Optional<Payment> findByIdWithLock(String id) {
+        return jpaRepository.findByIdWithLock(id).map(e -> e.toDomain(loadPgPayment(id)));
+    }
+
+    @Override
     public Optional<Payment> findByIdempotencyKey(String idempotencyKey) {
         return jpaRepository.findByIdempotencyKey(idempotencyKey)
                 .map(e -> e.toDomain(loadPgPayment(e.getId())));
