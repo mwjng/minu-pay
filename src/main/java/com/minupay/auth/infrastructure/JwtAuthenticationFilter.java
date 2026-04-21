@@ -12,19 +12,21 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtProvider jwtProvider;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String token = extractToken(request);
-        if (token != null) {
-            jwtProvider.parse(token).ifPresent(claims -> setAuthentication(claims));
-        }
+        extractToken(request)
+                .flatMap(jwtProvider::parse)
+                .ifPresent(this::setAuthentication);
         chain.doFilter(request, response);
     }
 
@@ -36,11 +38,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private String extractToken(HttpServletRequest request) {
+    private Optional<String> extractToken(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
-            return bearer.substring(7);
+        if (!StringUtils.hasText(bearer) || !bearer.startsWith(BEARER_PREFIX)) {
+            return Optional.empty();
         }
-        return null;
+        return Optional.of(bearer.substring(BEARER_PREFIX.length()));
     }
 }
