@@ -55,7 +55,6 @@ public class OutboxPublisher {
                 Thread.currentThread().interrupt();
                 outbox.recordFailure(maxRetries);
                 log.warn("Outbox publish interrupted id={}, stopping batch", outbox.getId());
-                outboxRepository.saveAll(pendings);
                 return;
             } catch (ExecutionException | TimeoutException e) {
                 outbox.recordFailure(maxRetries);
@@ -63,6 +62,5 @@ public class OutboxPublisher {
                         outbox.getId(), outbox.getTopic(), outbox.getRetryCount(), e);
             }
         }
-        outboxRepository.saveAll(pendings);
     }
 }
