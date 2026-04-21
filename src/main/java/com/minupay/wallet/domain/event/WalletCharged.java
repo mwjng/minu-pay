@@ -24,7 +24,7 @@ public class WalletCharged extends AbstractDomainEvent {
 
     @Override
     public String getEventType() {
-        return EventType.WALLET_CHARGED;
+        return EventType.WALLET_CHARGED.wireName();
     }
 
     @Override

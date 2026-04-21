@@ -56,7 +56,7 @@ class SettlementServiceTest {
     @Test
     @DisplayName("PaymentApproved_수신시_SettlementItem이_저장된다")
     void handleApproved_savesItem() {
-        EventEnvelope envelope = envelope("evt-1", EventType.PAYMENT_APPROVED, "payment-1",
+        EventEnvelope envelope = envelope("evt-1", EventType.PAYMENT_APPROVED.wireName(), "payment-1",
                 Instant.parse("2026-04-19T01:00:00Z"));
         Map<String, Object> payload = Map.of(
                 "paymentId", "payment-1",
@@ -83,7 +83,7 @@ class SettlementServiceTest {
     @Test
     @DisplayName("UTC_자정_직전의_approvedAt은_KST_기준_다음날짜로_정산된다")
     void handleApproved_targetDateUsesKst() {
-        EventEnvelope envelope = envelope("evt-2", EventType.PAYMENT_APPROVED, "payment-2",
+        EventEnvelope envelope = envelope("evt-2", EventType.PAYMENT_APPROVED.wireName(), "payment-2",
                 Instant.parse("2026-04-18T15:30:00Z")); // KST 00:30 2026-04-19
         Map<String, Object> payload = Map.of(
                 "paymentId", "payment-2",
@@ -102,7 +102,7 @@ class SettlementServiceTest {
     @Test
     @DisplayName("중복_eventId면_ConsumedEventRecorder가_false반환하여_저장되지_않는다")
     void handleApproved_duplicateSkipped() {
-        EventEnvelope envelope = envelope("evt-dup", EventType.PAYMENT_APPROVED, "payment-1", Instant.now());
+        EventEnvelope envelope = envelope("evt-dup", EventType.PAYMENT_APPROVED.wireName(), "payment-1", Instant.now());
         given(consumedEventRecorder.markIfAbsent("evt-dup", GROUP, TOPIC_APPROVED)).willReturn(false);
 
         settlementService.handleApproved(envelope, TOPIC_APPROVED, Map.of(
@@ -119,7 +119,7 @@ class SettlementServiceTest {
                 "payment-1", "merchant-1", LocalDate.of(2026, 4, 19),
                 Money.of(10_000), new BigDecimal("0.03")
         );
-        EventEnvelope envelope = envelope("evt-3", EventType.PAYMENT_CANCELLED, "payment-1", Instant.now());
+        EventEnvelope envelope = envelope("evt-3", EventType.PAYMENT_CANCELLED.wireName(), "payment-1", Instant.now());
         given(consumedEventRecorder.markIfAbsent("evt-3", GROUP, TOPIC_CANCELLED)).willReturn(true);
         given(settlementItemRepository.findByPaymentId("payment-1")).willReturn(Optional.of(existing));
 
@@ -133,7 +133,7 @@ class SettlementServiceTest {
     @Test
     @DisplayName("PaymentCancelled_수신했는데_해당_SettlementItem이_없으면_저장없이_종료한다")
     void handleCancelled_missingItem_noOp() {
-        EventEnvelope envelope = envelope("evt-4", EventType.PAYMENT_CANCELLED, "payment-missing", Instant.now());
+        EventEnvelope envelope = envelope("evt-4", EventType.PAYMENT_CANCELLED.wireName(), "payment-missing", Instant.now());
         given(consumedEventRecorder.markIfAbsent("evt-4", GROUP, TOPIC_CANCELLED)).willReturn(true);
         given(settlementItemRepository.findByPaymentId("payment-missing")).willReturn(Optional.empty());
 
@@ -145,7 +145,7 @@ class SettlementServiceTest {
     @Test
     @DisplayName("중복_PaymentCancelled_이벤트는_두번째_수신시_조회없이_스킵된다")
     void handleCancelled_duplicateSkipped() {
-        EventEnvelope envelope = envelope("evt-dup-cancel", EventType.PAYMENT_CANCELLED, "payment-1", Instant.now());
+        EventEnvelope envelope = envelope("evt-dup-cancel", EventType.PAYMENT_CANCELLED.wireName(), "payment-1", Instant.now());
         given(consumedEventRecorder.markIfAbsent("evt-dup-cancel", GROUP, TOPIC_CANCELLED)).willReturn(false);
 
         settlementService.handleCancelled(envelope, TOPIC_CANCELLED, Map.of("paymentId", "payment-1"));

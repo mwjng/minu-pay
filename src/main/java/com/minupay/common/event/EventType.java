@@ -1,15 +1,33 @@
 package com.minupay.common.event;
 
-public final class EventType {
+import java.util.Optional;
 
-    public static final String WALLET_CHARGED = "WalletCharged";
-    public static final String WALLET_DEDUCTED = "WalletDeducted";
-    public static final String WALLET_REFUNDED = "WalletRefunded";
+public enum EventType {
 
-    public static final String PAYMENT_APPROVED = "PaymentApproved";
-    public static final String PAYMENT_FAILED = "PaymentFailed";
-    public static final String PAYMENT_CANCELLED = "PaymentCancelled";
+    WALLET_CHARGED("WalletCharged"),
+    WALLET_DEDUCTED("WalletDeducted"),
+    WALLET_REFUNDED("WalletRefunded"),
 
-    private EventType() {
+    PAYMENT_APPROVED("PaymentApproved"),
+    PAYMENT_FAILED("PaymentFailed"),
+    PAYMENT_CANCELLED("PaymentCancelled");
+
+    private final String wireName;
+
+    EventType(String wireName) {
+        this.wireName = wireName;
+    }
+
+    public String wireName() {
+        return wireName;
+    }
+
+    public static Optional<EventType> fromWire(String wireName) {
+        for (EventType type : values()) {
+            if (type.wireName.equals(wireName)) {
+                return Optional.of(type);
+            }
+        }
+        return Optional.empty();
     }
 }

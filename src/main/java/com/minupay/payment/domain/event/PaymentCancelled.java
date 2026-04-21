@@ -24,7 +24,7 @@ public class PaymentCancelled extends AbstractDomainEvent {
 
     @Override
     public String getEventType() {
-        return EventType.PAYMENT_CANCELLED;
+        return EventType.PAYMENT_CANCELLED.wireName();
     }
 
     @Override

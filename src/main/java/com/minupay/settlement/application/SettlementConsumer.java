@@ -30,17 +30,27 @@ public class SettlementConsumer {
         try {
             EventEnvelope envelope = objectMapper.readValue(record.value(), EventEnvelope.class);
             Map<String, Object> payload = toMap(envelope.payload());
-
-            switch (envelope.eventType()) {
-                case EventType.PAYMENT_APPROVED -> settlementService.handleApproved(envelope, record.topic(), payload);
-                case EventType.PAYMENT_CANCELLED -> settlementService.handleCancelled(envelope, record.topic(), payload);
-                default -> log.warn("Unhandled event type {} on {}", envelope.eventType(), record.topic());
-            }
+            dispatch(envelope, record.topic(), payload);
             ack.acknowledge();
         } catch (JsonProcessingException e) {
             log.error("Failed to deserialize envelope topic={} offset={}", record.topic(), record.offset(), e);
             // poison message — ack해서 소비자 루프 멈추지 않도록. 운영에서는 DLQ로 보내야 함.
             ack.acknowledge();
+        }
+    }
+
+    private void dispatch(EventEnvelope envelope, String topic, Map<String, Object> payload) {
+        EventType.fromWire(envelope.eventType()).ifPresentOrElse(
+                type -> route(type, envelope, topic, payload),
+                () -> log.warn("Unhandled event type {} on {}", envelope.eventType(), topic)
+        );
+    }
+
+    private void route(EventType type, EventEnvelope envelope, String topic, Map<String, Object> payload) {
+        switch (type) {
+            case PAYMENT_APPROVED -> settlementService.handleApproved(envelope, topic, payload);
+            case PAYMENT_CANCELLED -> settlementService.handleCancelled(envelope, topic, payload);
+            default -> log.warn("Known but unrouted event type {} on {}", type.wireName(), topic);
         }
     }
 

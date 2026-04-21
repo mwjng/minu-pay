@@ -46,7 +46,7 @@ class OutboxPublisherTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(publisher, "maxRetries", MAX_RETRIES);
-        pending = Outbox.create("agg-1", "Payment", EventType.PAYMENT_APPROVED,
+        pending = Outbox.create("agg-1", "Payment", EventType.PAYMENT_APPROVED.wireName(),
                 EventTopic.PAYMENT_APPROVED, "agg-1", "{\"eventId\":\"e-1\"}");
     }
 
@@ -104,7 +104,7 @@ class OutboxPublisherTest {
     @Test
     @DisplayName("인터럽트_발생시_현재_배치를_중단하고_남은_항목은_다음_스케줄로_넘긴다")
     void publish_interrupted_breaksLoop() {
-        Outbox second = Outbox.create("agg-2", "Payment", EventType.PAYMENT_APPROVED,
+        Outbox second = Outbox.create("agg-2", "Payment", EventType.PAYMENT_APPROVED.wireName(),
                 EventTopic.PAYMENT_APPROVED, "agg-2", "{\"eventId\":\"e-2\"}");
         given(outboxRepository.findTop50ByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING))
                 .willReturn(List.of(pending, second));
@@ -134,7 +134,7 @@ class OutboxPublisherTest {
         ProducerRecord<String, String> sent = captor.getValue();
         assertThat(sent.topic()).isEqualTo(EventTopic.PAYMENT_APPROVED);
         assertThat(sent.key()).isEqualTo("agg-1");
-        assertThat(sent.headers().lastHeader("eventType").value()).asString().isEqualTo(EventType.PAYMENT_APPROVED);
+        assertThat(sent.headers().lastHeader("eventType").value()).asString().isEqualTo(EventType.PAYMENT_APPROVED.wireName());
         assertThat(sent.headers().lastHeader("aggregateType").value()).asString().isEqualTo("Payment");
         assertThat(sent.headers().lastHeader("aggregateId").value()).asString().isEqualTo("agg-1");
     }

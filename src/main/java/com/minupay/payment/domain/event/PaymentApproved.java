@@ -24,7 +24,7 @@ public class PaymentApproved extends AbstractDomainEvent {
 
     @Override
     public String getEventType() {
-        return EventType.PAYMENT_APPROVED;
+        return EventType.PAYMENT_APPROVED.wireName();
     }
 
     @Override
