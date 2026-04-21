@@ -29,10 +29,27 @@ public class WalletTransaction {
         return tx;
     }
 
-    public Long getId() { return id; }
-    public Long getWalletId() { return walletId; }
-    public WalletTransactionType getType() { return type; }
-    public Money getAmount() { return amount; }
-    public String getReferenceId() { return referenceId; }
-    public String getReferenceType() { return referenceType; }
+    public Long getId() {
+        return id;
+    }
+
+    public Long getWalletId() {
+        return walletId;
+    }
+
+    public WalletTransactionType getType() {
+        return type;
+    }
+
+    public Money getAmount() {
+        return amount;
+    }
+
+    public String getReferenceId() {
+        return referenceId;
+    }
+
+    public String getReferenceType() {
+        return referenceType;
+    }
 }

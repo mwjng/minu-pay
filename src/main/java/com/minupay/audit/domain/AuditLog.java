@@ -37,12 +37,35 @@ public class AuditLog {
                 traceId, occurredAt, payload, recordedAt);
     }
 
-    public String getEventId() { return eventId; }
-    public String getEventType() { return eventType; }
-    public String getAggregateId() { return aggregateId; }
-    public String getAggregateType() { return aggregateType; }
-    public String getTraceId() { return traceId; }
-    public Instant getOccurredAt() { return occurredAt; }
-    public String getPayload() { return payload; }
-    public Instant getRecordedAt() { return recordedAt; }
+    public String getEventId() {
+        return eventId;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public String getAggregateId() {
+        return aggregateId;
+    }
+
+    public String getAggregateType() {
+        return aggregateType;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public Instant getRecordedAt() {
+        return recordedAt;
+    }
 }

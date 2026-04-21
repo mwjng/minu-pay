@@ -92,9 +92,23 @@ public class Wallet {
         domainEvents.clear();
     }
 
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public Money getBalance() { return balance; }
-    public WalletStatus getStatus() { return status; }
-    public Long getVersion() { return version; }
+    public Long getId() {
+        return id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Money getBalance() {
+        return balance;
+    }
+
+    public WalletStatus getStatus() {
+        return status;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
 }

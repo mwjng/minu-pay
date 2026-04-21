@@ -21,10 +21,25 @@ public class WalletDeducted extends AbstractDomainEvent {
         this.referenceId = referenceId;
     }
 
-    @Override public String getEventType() { return "WalletDeducted"; }
-    @Override public String getAggregateId() { return walletId.toString(); }
-    @Override public String getAggregateType() { return "Wallet"; }
-    @Override public String getTopic() { return EventTopic.WALLET_DEDUCTED; }
+    @Override
+    public String getEventType() {
+        return "WalletDeducted";
+    }
+
+    @Override
+    public String getAggregateId() {
+        return walletId.toString();
+    }
+
+    @Override
+    public String getAggregateType() {
+        return "Wallet";
+    }
+
+    @Override
+    public String getTopic() {
+        return EventTopic.WALLET_DEDUCTED;
+    }
 
     @Override
     public Object getPayload() {

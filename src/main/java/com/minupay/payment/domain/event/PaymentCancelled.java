@@ -21,10 +21,25 @@ public class PaymentCancelled extends AbstractDomainEvent {
         this.amount = amount;
     }
 
-    @Override public String getEventType() { return "PaymentCancelled"; }
-    @Override public String getAggregateId() { return paymentId; }
-    @Override public String getAggregateType() { return "Payment"; }
-    @Override public String getTopic() { return EventTopic.PAYMENT_CANCELLED; }
+    @Override
+    public String getEventType() {
+        return "PaymentCancelled";
+    }
+
+    @Override
+    public String getAggregateId() {
+        return paymentId;
+    }
+
+    @Override
+    public String getAggregateType() {
+        return "Payment";
+    }
+
+    @Override
+    public String getTopic() {
+        return EventTopic.PAYMENT_CANCELLED;
+    }
 
     @Override
     public Object getPayload() {

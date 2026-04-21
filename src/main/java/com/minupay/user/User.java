@@ -28,10 +28,27 @@ public class User {
         return new User(id, email, name, encodedPassword, role, createdAt);
     }
 
-    public Long getId() { return id; }
-    public String getEmail() { return email; }
-    public String getName() { return name; }
-    public String getEncodedPassword() { return encodedPassword; }
-    public UserRole getRole() { return role; }
-    public Instant getCreatedAt() { return createdAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEncodedPassword() {
+        return encodedPassword;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

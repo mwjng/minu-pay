@@ -19,10 +19,23 @@ public abstract class AbstractDomainEvent implements DomainEvent {
         this.occurredAt = Instant.now();
     }
 
-    @Override public String getEventId() { return eventId; }
-    @Override public String getTraceId() { return traceId; }
-    @Override public Instant getOccurredAt() { return occurredAt; }
+    @Override
+    public String getEventId() {
+        return eventId;
+    }
 
     @Override
-    public SnapshotPair getSnapshot() { return null; }
+    public String getTraceId() {
+        return traceId;
+    }
+
+    @Override
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+
+    @Override
+    public SnapshotPair getSnapshot() {
+        return null;
+    }
 }

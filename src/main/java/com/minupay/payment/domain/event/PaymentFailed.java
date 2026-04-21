@@ -21,10 +21,25 @@ public class PaymentFailed extends AbstractDomainEvent {
         this.reason = reason;
     }
 
-    @Override public String getEventType() { return "PaymentFailed"; }
-    @Override public String getAggregateId() { return paymentId; }
-    @Override public String getAggregateType() { return "Payment"; }
-    @Override public String getTopic() { return EventTopic.PAYMENT_FAILED; }
+    @Override
+    public String getEventType() {
+        return "PaymentFailed";
+    }
+
+    @Override
+    public String getAggregateId() {
+        return paymentId;
+    }
+
+    @Override
+    public String getAggregateType() {
+        return "Payment";
+    }
+
+    @Override
+    public String getTopic() {
+        return EventTopic.PAYMENT_FAILED;
+    }
 
     @Override
     public Object getPayload() {

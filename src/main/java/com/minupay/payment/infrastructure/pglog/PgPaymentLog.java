@@ -42,6 +42,11 @@ public class PgPaymentLog {
         return log;
     }
 
-    public String getId() { return id; }
-    public String getPaymentId() { return paymentId; }
+    public String getId() {
+        return id;
+    }
+
+    public String getPaymentId() {
+        return paymentId;
+    }
 }

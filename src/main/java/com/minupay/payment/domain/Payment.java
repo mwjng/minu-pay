@@ -92,18 +92,55 @@ public class Payment {
         domainEvents.add(new PaymentCancelled(id, userId, merchantId, amount));
     }
 
-    public List<DomainEvent> getDomainEvents() { return Collections.unmodifiableList(domainEvents); }
-    public void clearDomainEvents() { domainEvents.clear(); }
+    public List<DomainEvent> getDomainEvents() {
+        return Collections.unmodifiableList(domainEvents);
+    }
 
-    public String getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getMerchantId() { return merchantId; }
-    public Money getAmount() { return amount; }
-    public PaymentStatus getStatus() { return status; }
-    public String getIdempotencyKey() { return idempotencyKey; }
-    public Long getWalletTransactionId() { return walletTransactionId; }
-    public PgPayment getPgPayment() { return pgPayment; }
-    public String getFailureReason() { return failureReason; }
-    public Instant getApprovedAt() { return approvedAt; }
-    public Instant getCancelledAt() { return cancelledAt; }
+    public void clearDomainEvents() {
+        domainEvents.clear();
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public String getMerchantId() {
+        return merchantId;
+    }
+
+    public Money getAmount() {
+        return amount;
+    }
+
+    public PaymentStatus getStatus() {
+        return status;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public Long getWalletTransactionId() {
+        return walletTransactionId;
+    }
+
+    public PgPayment getPgPayment() {
+        return pgPayment;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
+
+    public Instant getApprovedAt() {
+        return approvedAt;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
 }

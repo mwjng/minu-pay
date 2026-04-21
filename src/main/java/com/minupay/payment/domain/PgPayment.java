@@ -29,9 +29,23 @@ public class PgPayment {
         return p;
     }
 
-    public Long getId() { return id; }
-    public PgProvider getPgProvider() { return pgProvider; }
-    public String getPgTxId() { return pgTxId; }
-    public PgStatus getStatus() { return status; }
-    public String getPgLogId() { return pgLogId; }
+    public Long getId() {
+        return id;
+    }
+
+    public PgProvider getPgProvider() {
+        return pgProvider;
+    }
+
+    public String getPgTxId() {
+        return pgTxId;
+    }
+
+    public PgStatus getStatus() {
+        return status;
+    }
+
+    public String getPgLogId() {
+        return pgLogId;
+    }
 }

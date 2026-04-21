@@ -75,13 +75,39 @@ public class SettlementItem {
         return Money.of(feeAmount);
     }
 
-    public String getId() { return id; }
-    public String getPaymentId() { return paymentId; }
-    public String getMerchantId() { return merchantId; }
-    public LocalDate getTargetDate() { return targetDate; }
-    public Money getGrossAmount() { return grossAmount; }
-    public Money getFee() { return fee; }
-    public Money getNetAmount() { return netAmount; }
-    public SettlementItemStatus getStatus() { return status; }
-    public Instant getCancelledAt() { return cancelledAt; }
+    public String getId() {
+        return id;
+    }
+
+    public String getPaymentId() {
+        return paymentId;
+    }
+
+    public String getMerchantId() {
+        return merchantId;
+    }
+
+    public LocalDate getTargetDate() {
+        return targetDate;
+    }
+
+    public Money getGrossAmount() {
+        return grossAmount;
+    }
+
+    public Money getFee() {
+        return fee;
+    }
+
+    public Money getNetAmount() {
+        return netAmount;
+    }
+
+    public SettlementItemStatus getStatus() {
+        return status;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
 }
