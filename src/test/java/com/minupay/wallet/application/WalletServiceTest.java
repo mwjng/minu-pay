@@ -1,11 +1,9 @@
 package com.minupay.wallet.application;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.minupay.common.event.DomainEventPublisher;
 import com.minupay.common.exception.MinuPayException;
 import com.minupay.common.idempotency.IdempotencyService;
 import com.minupay.common.money.Money;
-import com.minupay.common.outbox.Outbox;
-import com.minupay.common.outbox.OutboxRepository;
 import com.minupay.wallet.application.dto.ChargeCommand;
 import com.minupay.wallet.application.dto.WalletInfo;
 import com.minupay.wallet.domain.Wallet;
@@ -37,8 +35,7 @@ class WalletServiceTest {
 
     @Mock private WalletRepository walletRepository;
     @Mock private WalletTransactionRepository walletTransactionRepository;
-    @Mock private OutboxRepository outboxRepository;
-    @Mock private ObjectMapper objectMapper;
+    @Mock private DomainEventPublisher domainEventPublisher;
     @Mock private IdempotencyService idempotencyService;
     @Mock private WalletMetrics walletMetrics;
 
@@ -68,8 +65,8 @@ class WalletServiceTest {
     }
 
     @Test
-    @DisplayName("충전 성공 시 Outbox에 WalletCharged 이벤트가 저장되고 멱등키가 완료 처리된다")
-    void 충전_성공_Outbox_이벤트저장() throws Exception {
+    @DisplayName("충전 성공 시 도메인 이벤트가 발행되고 멱등키가 완료 처리된다")
+    void 충전_성공_이벤트발행() {
         Long userId = 1L;
         String key = "key-1";
         Wallet wallet = Wallet.of(10L, userId, Money.of(1000L), WalletStatus.ACTIVE, 0L);
@@ -79,12 +76,11 @@ class WalletServiceTest {
         given(walletRepository.findByUserIdWithLock(userId)).willReturn(Optional.of(wallet));
         given(walletRepository.save(any())).willReturn(wallet);
         given(walletTransactionRepository.save(any())).willReturn(null);
-        given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
         walletService.charge(command);
 
         then(idempotencyService).should().markProcessing(key);
-        then(outboxRepository).should().save(any(Outbox.class));
+        then(domainEventPublisher).should().publish(any());
         then(idempotencyService).should().complete(eq(key), any(WalletInfo.class));
     }
 

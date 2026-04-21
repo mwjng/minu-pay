@@ -7,6 +7,7 @@ public interface DomainEvent {
     String getEventType();
     String getAggregateId();
     String getAggregateType();
+    String getTopic();
     String getTraceId();
     Instant getOccurredAt();
     Object getPayload();

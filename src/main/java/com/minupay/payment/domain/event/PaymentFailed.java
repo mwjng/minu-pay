@@ -23,6 +23,7 @@ public class PaymentFailed extends AbstractDomainEvent {
     @Override public String getEventType() { return "PaymentFailed"; }
     @Override public String getAggregateId() { return paymentId; }
     @Override public String getAggregateType() { return "Payment"; }
+    @Override public String getTopic() { return "payment.failed"; }
 
     @Override
     public Object getPayload() {

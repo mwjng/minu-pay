@@ -1,14 +1,10 @@
 package com.minupay.payment.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.minupay.common.event.EventEnvelope;
+import com.minupay.common.event.DomainEventPublisher;
 import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
 import com.minupay.common.idempotency.IdempotencyService;
 import com.minupay.common.money.Money;
-import com.minupay.common.outbox.Outbox;
-import com.minupay.common.outbox.OutboxRepository;
 import com.minupay.payment.application.dto.PaymentCommand;
 import com.minupay.payment.application.dto.PaymentInfo;
 import com.minupay.payment.domain.Payment;
@@ -30,8 +26,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final WalletService walletService;
     private final IdempotencyService idempotencyService;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher domainEventPublisher;
 
     @Transactional
     public PaymentInitResult initiate(PaymentCommand command) {
@@ -99,23 +94,7 @@ public class PaymentService {
     }
 
     private void publishEvents(Payment payment) {
-        payment.getDomainEvents().forEach(event -> {
-            try {
-                String payload = EventEnvelope.from(event).toJson(objectMapper);
-                String topic = switch (event.getEventType()) {
-                    case "PaymentApproved" -> "payment.approved";
-                    case "PaymentFailed" -> "payment.failed";
-                    case "PaymentCancelled" -> "payment.cancelled";
-                    default -> "payment.events";
-                };
-                outboxRepository.save(Outbox.create(
-                        event.getAggregateId(), event.getAggregateType(),
-                        event.getEventType(), topic, event.getAggregateId(), payload
-                ));
-            } catch (JsonProcessingException e) {
-                throw new MinuPayException(ErrorCode.INTERNAL_ERROR, "Event serialization failed");
-            }
-        });
+        domainEventPublisher.publish(payment.getDomainEvents());
         payment.clearDomainEvents();
     }
 

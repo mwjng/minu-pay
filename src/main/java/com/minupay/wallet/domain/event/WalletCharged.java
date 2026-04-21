@@ -23,6 +23,7 @@ public class WalletCharged extends AbstractDomainEvent {
     @Override public String getEventType() { return "WalletCharged"; }
     @Override public String getAggregateId() { return walletId.toString(); }
     @Override public String getAggregateType() { return "Wallet"; }
+    @Override public String getTopic() { return "wallet.charged"; }
 
     @Override
     public Object getPayload() {
