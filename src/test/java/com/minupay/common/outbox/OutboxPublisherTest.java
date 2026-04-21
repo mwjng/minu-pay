@@ -110,9 +110,8 @@ class OutboxPublisherTest {
 
         publisher.publish();
 
-        assertThat(pending.getRetryCount()).isEqualTo(1);
+        assertThat(pending.getRetryCount()).isZero();
         assertThat(pending.getStatus()).isEqualTo(OutboxStatus.PENDING);
-        // 두 번째 항목은 만져지지 않음 — 다음 스케줄에서 재시도
         assertThat(second.getRetryCount()).isZero();
         assertThat(second.getStatus()).isEqualTo(OutboxStatus.PENDING);
         assertThat(Thread.currentThread().isInterrupted()).isTrue();

@@ -51,10 +51,8 @@ public class OutboxPublisher {
                 kafkaTemplate.send(record).get(SEND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 outbox.markPublished();
             } catch (InterruptedException e) {
-                // 스레드 종료 신호 — 이 루프를 중단하고 남은 항목은 다음 스케줄에서 재시도하도록 둔다.
                 Thread.currentThread().interrupt();
-                outbox.recordFailure(maxRetries);
-                log.warn("Outbox publish interrupted id={}, stopping batch", outbox.getId());
+                log.warn("Outbox publish interrupted id={}, leaving as PENDING for retry", outbox.getId());
                 return;
             } catch (ExecutionException | TimeoutException e) {
                 outbox.recordFailure(maxRetries);
