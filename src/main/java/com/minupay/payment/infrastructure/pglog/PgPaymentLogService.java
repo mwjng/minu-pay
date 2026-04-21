@@ -14,16 +14,14 @@ public class PgPaymentLogService {
     private final PgPaymentLogRepository repository;
 
     // MongoDB 저장 실패가 결제 트랜잭션에 영향을 주면 안 됨 → 실패 시 로그만 남기고 swallow
-    public String save(String paymentId, String pgProvider, String requestType,
-                       Map<String, Object> request, Map<String, Object> response, long durationMs) {
+    public void save(String paymentId, String pgProvider, String requestType,
+                     Map<String, Object> request, Map<String, Object> response, long durationMs) {
         try {
-            PgPaymentLog saved = repository.save(
+            repository.save(
                     PgPaymentLog.of(paymentId, pgProvider, requestType, request, response, durationMs)
             );
-            return saved.getId();
         } catch (Exception e) {
             log.error("Failed to save PG payment log for paymentId={}", paymentId, e);
-            return null;
         }
     }
 }
