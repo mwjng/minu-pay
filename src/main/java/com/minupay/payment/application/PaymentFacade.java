@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class PaymentFacade {
 
+    private static final String PG_NO_RESPONSE_REASON = "PG response timeout";
+
     private final PaymentService paymentService;
     private final PgClient pgClient;
     private final PgPaymentLogService pgPaymentLogService;
@@ -35,32 +37,8 @@ public class PaymentFacade {
         if (cached.isPresent()) return cached.get();
 
         PaymentService.PaymentInitResult init = paymentService.initiate(command);
-
-        long startTime = System.nanoTime();
-        PgResult pgResult = null;
-        try {
-            pgResult = pgClient.approve(new PgApproveRequest(command.tossPaymentKey(), init.paymentId(), command.amount()));
-        } finally {
-            long durationNs = System.nanoTime() - startTime;
-            long durationMs = TimeUnit.NANOSECONDS.toMillis(durationNs);
-            paymentMetrics.recordPgApproveDuration(durationNs);
-            pgPaymentLogService.save(
-                    init.paymentId(), PgProvider.TOSS.name(), "APPROVE",
-                    Map.of("paymentKey", command.tossPaymentKey(), "amount", command.amount()),
-                    pgResult != null ? Map.of("success", pgResult.success()) : Map.of("error", "no_response"),
-                    durationMs
-            );
-        }
-
-        PaymentInfo result;
-        if (pgResult != null && pgResult.success()) {
-            result = paymentService.approve(init.paymentId(), init.walletTransactionId(), pgResult);
-            paymentMetrics.recordApproved();
-        } else {
-            String reason = pgResult != null ? pgResult.errorMessage() : "PG response timeout";
-            result = paymentService.fail(init.paymentId(), init.walletTransactionId(), command.userId(), command.amount(), reason);
-            paymentMetrics.recordFailed();
-        }
+        PgResult pgResult = approveWithLog(command, init.paymentId());
+        PaymentInfo result = finalizeApproval(command, init, pgResult);
 
         idempotencyService.complete(command.idempotencyKey(), result);
         return result;
@@ -71,23 +49,8 @@ public class PaymentFacade {
         if (cached.isPresent()) return cached.get();
 
         PaymentService.CancelReservation reservation = paymentService.reserveCancel(paymentId, idempotencyKey);
-        String pgTxId = reservation.pgTxId();
-
-        long startTime = System.currentTimeMillis();
-        PgResult pgResult = null;
-        try {
-            pgResult = pgClient.cancel(pgTxId, reason);
-        } finally {
-            long duration = System.currentTimeMillis() - startTime;
-            pgPaymentLogService.save(
-                    paymentId, PgProvider.TOSS.name(), "CANCEL",
-                    Map.of("pgTxId", pgTxId, "reason", reason),
-                    pgResult != null ? Map.of("success", pgResult.success()) : Map.of("error", "no_response"),
-                    duration
-            );
-        }
-
-        if (pgResult == null || !pgResult.success()) {
+        PgResult pgResult = cancelWithLog(paymentId, reservation.pgTxId(), reason);
+        if (!isSuccess(pgResult)) {
             throw new MinuPayException(ErrorCode.PG_APPROVAL_FAILED, "PG cancel failed");
         }
 
@@ -95,5 +58,53 @@ public class PaymentFacade {
         paymentMetrics.recordCancelled();
         idempotencyService.complete(idempotencyKey, cancelled);
         return cancelled;
+    }
+
+    private PgResult approveWithLog(PaymentCommand command, String paymentId) {
+        long startTime = System.nanoTime();
+        PgResult pgResult = null;
+        try {
+            pgResult = pgClient.approve(new PgApproveRequest(command.tossPaymentKey(), paymentId, command.amount()));
+            return pgResult;
+        } finally {
+            long durationNs = System.nanoTime() - startTime;
+            paymentMetrics.recordPgApproveDuration(durationNs);
+            pgPaymentLogService.save(paymentId, PgProvider.TOSS.name(), "APPROVE",
+                    Map.of("paymentKey", command.tossPaymentKey(), "amount", command.amount()),
+                    pgResponseLog(pgResult), TimeUnit.NANOSECONDS.toMillis(durationNs));
+        }
+    }
+
+    private PgResult cancelWithLog(String paymentId, String pgTxId, String reason) {
+        long startTime = System.currentTimeMillis();
+        PgResult pgResult = null;
+        try {
+            pgResult = pgClient.cancel(pgTxId, reason);
+            return pgResult;
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            pgPaymentLogService.save(paymentId, PgProvider.TOSS.name(), "CANCEL",
+                    Map.of("pgTxId", pgTxId, "reason", reason),
+                    pgResponseLog(pgResult), duration);
+        }
+    }
+
+    private PaymentInfo finalizeApproval(PaymentCommand command, PaymentService.PaymentInitResult init, PgResult pgResult) {
+        if (isSuccess(pgResult)) {
+            paymentMetrics.recordApproved();
+            return paymentService.approve(init.paymentId(), init.walletTransactionId(), pgResult);
+        }
+        paymentMetrics.recordFailed();
+        String reason = pgResult != null ? pgResult.errorMessage() : PG_NO_RESPONSE_REASON;
+        return paymentService.fail(init.paymentId(), init.walletTransactionId(), command.userId(), command.amount(), reason);
+    }
+
+    private static boolean isSuccess(PgResult pgResult) {
+        return pgResult != null && pgResult.success();
+    }
+
+    private static Map<String, Object> pgResponseLog(PgResult pgResult) {
+        if (pgResult == null) return Map.of("error", "no_response");
+        return Map.of("success", pgResult.success());
     }
 }
