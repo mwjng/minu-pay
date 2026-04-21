@@ -70,7 +70,7 @@ class IdempotencyServiceTest {
 
         assertThat(processing.getStatus()).isEqualTo(IdempotencyStatus.COMPLETED);
         assertThat(processing.getResponseBody()).contains("\"message\":\"done\"").contains("\"value\":7");
-        verify(repository).save(processing);
+        verify(repository, never()).save(any());
     }
 
     @Test

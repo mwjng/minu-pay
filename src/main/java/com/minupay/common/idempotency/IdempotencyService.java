@@ -6,6 +6,7 @@ import com.minupay.common.exception.ErrorCode;
 import com.minupay.common.exception.MinuPayException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +32,16 @@ public class IdempotencyService {
 
     /**
      * Reserves the key in PROCESSING state. Caller must run this inside the business transaction so the
-     * preemption and downstream writes commit together. Duplicate keys surface as unique-constraint violations.
+     * preemption and downstream writes commit together. A duplicate key (request already in flight or
+     * completed) surfaces as {@link ErrorCode#DUPLICATE_REQUEST}.
      */
     public void markProcessing(String key) {
-        repository.save(IdempotencyKeyEntity.processing(key));
+        try {
+            repository.save(IdempotencyKeyEntity.processing(key));
+        } catch (DataIntegrityViolationException e) {
+            throw new MinuPayException(ErrorCode.DUPLICATE_REQUEST,
+                    "Request already in progress or completed: " + key);
+        }
     }
 
     /**

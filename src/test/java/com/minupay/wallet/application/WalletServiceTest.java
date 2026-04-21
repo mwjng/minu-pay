@@ -12,6 +12,7 @@ import com.minupay.wallet.domain.Wallet;
 import com.minupay.wallet.domain.WalletRepository;
 import com.minupay.wallet.domain.WalletStatus;
 import com.minupay.wallet.domain.WalletTransactionRepository;
+import com.minupay.wallet.infrastructure.metrics.WalletMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,7 @@ class WalletServiceTest {
     @Mock private OutboxRepository outboxRepository;
     @Mock private ObjectMapper objectMapper;
     @Mock private IdempotencyService idempotencyService;
+    @Mock private WalletMetrics walletMetrics;
 
     @Test
     @DisplayName("지갑 생성 성공")
