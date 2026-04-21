@@ -99,11 +99,11 @@ public class PaymentFacade {
         return paymentService.fail(init.paymentId(), init.walletTransactionId(), command.userId(), command.amount(), reason);
     }
 
-    private static boolean isSuccess(PgResult pgResult) {
+    private boolean isSuccess(PgResult pgResult) {
         return pgResult != null && pgResult.success();
     }
 
-    private static Map<String, Object> pgResponseLog(PgResult pgResult) {
+    private Map<String, Object> pgResponseLog(PgResult pgResult) {
         if (pgResult == null) return Map.of("error", "no_response");
         return Map.of("success", pgResult.success());
     }
