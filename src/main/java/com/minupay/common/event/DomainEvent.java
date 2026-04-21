@@ -11,7 +11,4 @@ public interface DomainEvent {
     String getTraceId();
     Instant getOccurredAt();
     Object getPayload();
-    SnapshotPair getSnapshot();
-
-    record SnapshotPair(Object before, Object after) {}
 }

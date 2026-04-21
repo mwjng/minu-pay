@@ -33,9 +33,4 @@ public abstract class AbstractDomainEvent implements DomainEvent {
     public Instant getOccurredAt() {
         return occurredAt;
     }
-
-    @Override
-    public SnapshotPair getSnapshot() {
-        return null;
-    }
 }
