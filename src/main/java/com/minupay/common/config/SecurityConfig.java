@@ -1,9 +1,11 @@
 package com.minupay.common.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minupay.auth.infrastructure.JwtAuthenticationFilter;
 import com.minupay.auth.infrastructure.JwtProvider;
 import com.minupay.common.trace.TraceIdFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -20,6 +22,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
+    private final ObjectMapper objectMapper;
+
+    @Value("${pay-service.internal-api-key:}")
+    private String internalApiKey;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,11 +41,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/api/users/register", "/h2-console/**",
                         "/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics/**",
                         "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/api/internal/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .addFilterBefore(new TraceIdFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(new InternalApiKeyFilter(internalApiKey, objectMapper), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(new JwtAuthenticationFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

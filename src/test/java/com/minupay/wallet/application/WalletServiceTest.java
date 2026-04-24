@@ -122,4 +122,85 @@ class WalletServiceTest {
                 new ChargeCommand(userId, Money.of(100L), "payment-1", "PAYMENT", null)))
                 .isInstanceOf(MinuPayException.class);
     }
+
+    @Test
+    @DisplayName("S2S 차감 성공 시 잔액이 줄고 idempotency 가 완료된다")
+    void S2S_차감_성공() {
+        Long userId = 1L;
+        String key = "trade-deduct-1";
+        Wallet wallet = Wallet.of(10L, userId, Money.of(1000L), WalletStatus.ACTIVE, 0L);
+        ChargeCommand command = new ChargeCommand(userId, Money.of(300L), key, "TRADING_DEPOSIT", key);
+
+        given(idempotencyService.findCachedResponse(key, WalletInfo.class)).willReturn(Optional.empty());
+        given(walletRepository.findByUserIdWithLock(userId)).willReturn(Optional.of(wallet));
+        given(walletRepository.save(any())).willReturn(wallet);
+
+        WalletInfo result = walletService.internalDeduct(command);
+
+        assertThat(result.balance()).isEqualTo(700L);
+        then(idempotencyService).should().markProcessing(key);
+        then(domainEventPublisher).should().publish(any());
+        then(idempotencyService).should().complete(eq(key), any(WalletInfo.class));
+    }
+
+    @Test
+    @DisplayName("S2S 차감 중복 요청은 캐시된 응답 반환")
+    void S2S_차감_중복요청_캐시응답반환() {
+        Long userId = 1L;
+        String key = "trade-deduct-dup";
+        WalletInfo cached = new WalletInfo(10L, userId, 700L, WalletStatus.ACTIVE);
+        ChargeCommand command = new ChargeCommand(userId, Money.of(300L), key, "TRADING_DEPOSIT", key);
+
+        given(idempotencyService.findCachedResponse(key, WalletInfo.class)).willReturn(Optional.of(cached));
+
+        WalletInfo result = walletService.internalDeduct(command);
+
+        assertThat(result).isEqualTo(cached);
+        then(walletRepository).should(never()).findByUserIdWithLock(any());
+        then(idempotencyService).should(never()).markProcessing(any());
+    }
+
+    @Test
+    @DisplayName("S2S 차감: idempotencyKey 없으면 예외")
+    void S2S_차감_키없으면_예외() {
+        ChargeCommand command = new ChargeCommand(1L, Money.of(300L), null, "TRADING_DEPOSIT", null);
+
+        assertThatThrownBy(() -> walletService.internalDeduct(command))
+                .isInstanceOf(MinuPayException.class)
+                .hasMessageContaining("idempotencyKey");
+    }
+
+    @Test
+    @DisplayName("S2S 입금 성공 시 잔액이 늘고 idempotency 가 완료된다")
+    void S2S_입금_성공() {
+        Long userId = 1L;
+        String key = "trade-credit-1";
+        Wallet wallet = Wallet.of(10L, userId, Money.of(1000L), WalletStatus.ACTIVE, 0L);
+        ChargeCommand command = new ChargeCommand(userId, Money.of(500L), key, "TRADING_WITHDRAW", key);
+
+        given(idempotencyService.findCachedResponse(key, WalletInfo.class)).willReturn(Optional.empty());
+        given(walletRepository.findByUserIdWithLock(userId)).willReturn(Optional.of(wallet));
+        given(walletRepository.save(any())).willReturn(wallet);
+
+        WalletInfo result = walletService.internalCredit(command);
+
+        assertThat(result.balance()).isEqualTo(1500L);
+        then(idempotencyService).should().complete(eq(key), any(WalletInfo.class));
+    }
+
+    @Test
+    @DisplayName("S2S 입금 중복 요청은 캐시된 응답 반환")
+    void S2S_입금_중복요청_캐시응답반환() {
+        Long userId = 1L;
+        String key = "trade-credit-dup";
+        WalletInfo cached = new WalletInfo(10L, userId, 1500L, WalletStatus.ACTIVE);
+        ChargeCommand command = new ChargeCommand(userId, Money.of(500L), key, "TRADING_WITHDRAW", key);
+
+        given(idempotencyService.findCachedResponse(key, WalletInfo.class)).willReturn(Optional.of(cached));
+
+        WalletInfo result = walletService.internalCredit(command);
+
+        assertThat(result).isEqualTo(cached);
+        then(walletRepository).should(never()).findByUserIdWithLock(any());
+    }
 }

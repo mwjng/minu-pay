@@ -85,6 +85,58 @@ public class WalletService {
     }
 
     @Transactional
+    public WalletInfo internalDeduct(ChargeCommand command) {
+        requireIdempotencyKey(command.idempotencyKey());
+
+        Optional<WalletInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), WalletInfo.class);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        idempotencyService.markProcessing(command.idempotencyKey());
+
+        Wallet wallet = walletRepository.findByUserIdWithLock(command.userId())
+                .orElseThrow(() -> new MinuPayException(ErrorCode.WALLET_NOT_FOUND));
+
+        WalletTransaction tx = wallet.deduct(command.amount(), command.referenceId(), command.referenceType());
+        walletRepository.save(wallet);
+        walletTransactionRepository.save(tx);
+        publishEvents(wallet);
+
+        WalletInfo result = WalletInfo.from(wallet);
+        idempotencyService.complete(command.idempotencyKey(), result);
+        return result;
+    }
+
+    @Transactional
+    public WalletInfo internalCredit(ChargeCommand command) {
+        requireIdempotencyKey(command.idempotencyKey());
+
+        Optional<WalletInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), WalletInfo.class);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+        idempotencyService.markProcessing(command.idempotencyKey());
+
+        Wallet wallet = walletRepository.findByUserIdWithLock(command.userId())
+                .orElseThrow(() -> new MinuPayException(ErrorCode.WALLET_NOT_FOUND));
+
+        WalletTransaction tx = wallet.refund(command.amount(), command.referenceId(), command.referenceType());
+        walletRepository.save(wallet);
+        walletTransactionRepository.save(tx);
+        publishEvents(wallet);
+
+        WalletInfo result = WalletInfo.from(wallet);
+        idempotencyService.complete(command.idempotencyKey(), result);
+        return result;
+    }
+
+    private void requireIdempotencyKey(String key) {
+        if (key == null || key.isBlank()) {
+            throw new MinuPayException(ErrorCode.INVALID_INPUT, "idempotencyKey is required");
+        }
+    }
+
+    @Transactional
     public WalletDeductResult deductForPayment(ChargeCommand command) {
         Wallet wallet = walletRepository.findByUserIdWithLock(command.userId())
                 .orElseThrow(() -> new MinuPayException(ErrorCode.WALLET_NOT_FOUND));
