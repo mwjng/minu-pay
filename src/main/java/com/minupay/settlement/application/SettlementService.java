@@ -35,7 +35,6 @@ public class SettlementService {
     @Transactional
     public void handleApproved(EventEnvelope envelope, String topic, Map<String, Object> payload) {
         if (!consumedEventRecorder.markIfAbsent(envelope.eventId(), consumerGroup, topic)) {
-            log.debug("Skip already-consumed event {}", envelope.eventId());
             return;
         }
         String paymentId = (String) payload.get("paymentId");
@@ -52,7 +51,6 @@ public class SettlementService {
     @Transactional
     public void handleCancelled(EventEnvelope envelope, String topic, Map<String, Object> payload) {
         if (!consumedEventRecorder.markIfAbsent(envelope.eventId(), consumerGroup, topic)) {
-            log.debug("Skip already-consumed event {}", envelope.eventId());
             return;
         }
         String paymentId = (String) payload.get("paymentId");
