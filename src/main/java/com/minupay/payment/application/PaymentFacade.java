@@ -33,8 +33,11 @@ public class PaymentFacade {
     private final PaymentMetrics paymentMetrics;
 
     public PaymentInfo request(PaymentCommand command) {
-        Optional<PaymentInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(), PaymentInfo.class);
-        if (cached.isPresent()) return cached.get();
+        Optional<PaymentInfo> cached = idempotencyService.findCachedResponse(command.idempotencyKey(),
+                PaymentInfo.class);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         PaymentService.PaymentInitResult init = paymentService.initiate(command);
         PgResult pgResult = approveWithLog(command, init.paymentId());
